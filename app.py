@@ -4,6 +4,7 @@ import pandas as pd
 import phonenumbers
 from io import BytesIO
 import pycountry
+import re  # Import the regex module
 
 # Create a custom OpenAI API client
 client = openai
