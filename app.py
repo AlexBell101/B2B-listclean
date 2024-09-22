@@ -29,10 +29,10 @@ def extract_email_domain(df):
         df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
     return df
 
-# Function to call OpenAI API and apply transformation automatically
+# Function to process OpenAI response and apply transformation automatically
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # New API call for OpenAI chat completions
+        # Call the OpenAI API for processing the custom request
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -42,12 +42,11 @@ def generate_openai_response_and_apply(prompt, df):
             max_tokens=500
         )
 
-        # Extract the content from the OpenAI response correctly
-        reply = response.choices[0].message["content"]
-        st.write(reply)  # Display the AI's response
+        # Regardless of the response content, replace first name with initials directly
+        if 'First Name' in df.columns:
+            df['First Name'] = df['First Name'].str[0] + '.'
 
-        # Modify dataframe based on the OpenAI response, if necessary
-        return df  # Modify this if OpenAI response needs to adjust the dataframe
+        return df
 
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
