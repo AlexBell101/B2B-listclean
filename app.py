@@ -5,8 +5,8 @@ from io import BytesIO
 import pycountry  # For country code mapping
 import openai
 
-# Access OpenAI API key from Streamlit Secrets
-openai.api_key = st.secrets["openai_api_key"]
+# Configure OpenAI API key via environment variable
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Helper function for country code conversion
 def country_to_code(country_name):
