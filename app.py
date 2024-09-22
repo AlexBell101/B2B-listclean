@@ -47,23 +47,24 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
-        
+
         # Extract the Python code from the response
-        code_from_openai = response.choices[0].message.content
-        
-        # Display the OpenAI suggestion for debugging or logging (optional)
-        st.write(f"OpenAI Suggested Code:\n{code_from_openai}")
-        
-        # Dynamically execute the returned code in a controlled way
-        # Create a local environment (namespace) for the exec call
+        code_from_openai = response.choices[0].message['content']
+
+        # Optional: Clean the OpenAI-generated code (you can add additional cleaning logic here)
+        code_from_openai = code_from_openai.strip()
+
+        # Execute the OpenAI code in a controlled local environment
         local_env = {'df': df}
 
-        # Use exec to execute the OpenAI-generated Python code in this environment
-        exec(code_from_openai, {}, local_env)
-        
-        # Extract the updated DataFrame from the local environment after exec
-        df = local_env['df']
-        
+        # Safely execute the code and handle syntax errors
+        try:
+            exec(code_from_openai, {}, local_env)
+            df = local_env['df']  # Extract the updated DataFrame from the local environment
+        except SyntaxError as syntax_error:
+            st.error(f"Error executing OpenAI code: {syntax_error}")
+            return df  # Return unmodified DataFrame if code execution fails
+
         return df
 
     except Exception as e:
