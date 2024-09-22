@@ -87,6 +87,27 @@ def generate_openai_response_and_apply(prompt, df):
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
 
+        # Clean and validate the Python code
+        python_code = clean_and_validate_code(python_code)
+        if not python_code:
+            st.error("Invalid Python code returned by OpenAI")
+            return df
+
+        # Execute the extracted code in a controlled local environment
+        local_env = {'df': df}
+        try:
+            exec(python_code, {}, local_env)
+            df = local_env['df']  # Extract the updated DataFrame after exec
+        except SyntaxError as syntax_error:
+            st.error(f"Error executing OpenAI code: {syntax_error}")
+            return df
+
+        return df
+
+    except Exception as e:
+        st.error(f"OpenAI request failed: {e}")
+        return df
+
 
 # UI setup for the app
 st.set_page_config(page_title="List Cleaner SaaS", layout="centered")
