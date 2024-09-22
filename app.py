@@ -38,24 +38,25 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Function to extract Python code from OpenAI's response and remove 'python' prefix
 def extract_python_code(response_text):
-    # Use regex to extract Python code between ``` markers or similar
     code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
     if code_block:
         code = code_block.group(1).strip()
-        # Remove any 'python' prefix from the code block
+        # Remove 'python' prefix
         if code.startswith("python"):
             code = code[len("python"):].strip()
         return code
     else:
-        # If no ``` block, return the whole response
         return response_text.strip()
 
-# Function to validate the Python code before execution
-def validate_python_code(python_code):
+# Function to validate and replace 'data' with 'df'
+def clean_and_validate_code(python_code):
+    # Automatically replace 'data' with 'df' if necessary
+    python_code = python_code.replace("data", "df")
+
     # Ensure the code references 'df' and does not contain problematic statements
     if 'df' in python_code and 'import' not in python_code:
-        return True
-    return False
+        return python_code
+    return None
 
 # Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
@@ -75,13 +76,18 @@ def generate_openai_response_and_apply(prompt, df):
         python_code = extract_python_code(response_text)
 
         # Display OpenAI generated code for debugging
-        st.write("**OpenAI Suggested Code:**")
+        st.write("**OpenAI Suggested Code (before cleaning):**")
         st.code(python_code)
 
-        # Validate the Python code
-        if not validate_python_code(python_code):
+        # Clean and validate the Python code
+        python_code = clean_and_validate_code(python_code)
+        if not python_code:
             st.error("Invalid Python code returned by OpenAI")
             return df
+
+        # Display cleaned code for debugging
+        st.write("**Cleaned Python Code:**")
+        st.code(python_code)
 
         # Execute the extracted code in a controlled local environment
         local_env = {'df': df}
