@@ -1,9 +1,9 @@
+import openai
 import streamlit as st
 import pandas as pd
 import phonenumbers
 from io import BytesIO
-import pycountry  # For country code mapping
-import openai
+import pycountry
 
 # Fetch the OpenAI API key from Streamlit secrets
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -29,26 +29,25 @@ def extract_email_domain(df):
         df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
     return df
 
-# Function to process OpenAI response and apply transformation automatically
-# Function to call OpenAI with new API structure
-# Function to call OpenAI with new API structure
-# Function to call OpenAI with new API structure
+# Function to call OpenAI API and apply transformation automatically
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # New API call
-        response = openai.chat.completions.create(
+        # New API call for OpenAI chat completions
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}"}
-            ]
+            ],
+            max_tokens=500
         )
-        
-        # Extracting response content
-        reply = response['choices'][0]['message']['content']
-        st.write(reply)  # Show the AI's response
-        
-        return df
+
+        # Extract the content from the OpenAI response correctly
+        reply = response.choices[0].message["content"]
+        st.write(reply)  # Display the AI's response
+
+        # Modify dataframe based on the OpenAI response, if necessary
+        return df  # Modify this if OpenAI response needs to adjust the dataframe
 
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
