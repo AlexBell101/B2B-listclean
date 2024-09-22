@@ -30,23 +30,25 @@ def extract_email_domain(df):
     return df
 
 # Function to process OpenAI response and apply transformation automatically
+# Function to call OpenAI with new API structure
+# Function to call OpenAI with new API structure
+# Function to call OpenAI with new API structure
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # Corrected OpenAI API call
-        response = openai.ChatCompletion.create(
+        # New API call
+        response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}"}
-            ],
-            max_tokens=500
+            ]
         )
-
-        # Extract the reply from the response
+        
+        # Extracting response content
         reply = response['choices'][0]['message']['content']
-
-        # Example: Modify dataframe based on the OpenAI response if required
-        return df  # Modify this line to change the dataframe based on the response
+        st.write(reply)  # Show the AI's response
+        
+        return df
 
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
