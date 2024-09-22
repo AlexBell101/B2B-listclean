@@ -49,11 +49,10 @@ def extract_python_code(response_text):
         # Strip out any import statements, data definitions, incomplete DataFrame constructions, or print statements
         code = re.sub(r'import.*', '', code)  # Remove import statements
         code = re.sub(r'data\s*=.*', '', code)  # Remove data creation
-        code = re.sub(r'df\s*=\s*pd\.DataFrame\((.*?)$', '', code)  # Remove incomplete DataFrame creation
         code = re.sub(r'print\(.*\)', '', code)  # Remove print statements
         
-        # Remove any unmatched braces
-        code = re.sub(r'[{}]', '', code)  # Remove all curly braces (optional, based on the use case)
+        # Remove any dictionary-style key-value pairs if they are not part of a full dict
+        code = re.sub(r"'.*?':\s*\[.*?\]", '', code)  # Remove floating dictionary key-value pairs
 
         # Remove any leading or improper indentation
         code_lines = code.split('\n')
