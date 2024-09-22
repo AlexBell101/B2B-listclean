@@ -32,6 +32,9 @@ def extract_email_domain(df):
         df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
     return df
 
+# Fetch the OpenAI API key from Streamlit secrets
+client.api_key = st.secrets["OPENAI_API_KEY"]
+
 # Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
     try:
@@ -45,11 +48,11 @@ def generate_openai_response_and_apply(prompt, df):
             max_tokens=500
         )
 
-        # Correct way to extract response content (no subscripting)
-        reply = response['choices'][0]['message']['content']  # WRONG (don't subscript it)
-        # Instead, access the response properly as an object:
-        reply = response.choices[0].message['content']  # Correct way
-        
+        # Correct way to extract response content in latest OpenAI API
+        reply = response.choices[0].message['content']  # WRONG
+        # Correct way:
+        reply = response.choices[0].message.content  # Use .content directly
+
         st.write(reply)  # Display the AI's response
         
         return df
@@ -57,7 +60,6 @@ def generate_openai_response_and_apply(prompt, df):
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
-
 # UI setup for the app
 st.set_page_config(page_title="List Cleaner SaaS", layout="centered")
 st.title("📋 List Cleaner SaaS")
