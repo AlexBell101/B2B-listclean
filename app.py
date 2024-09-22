@@ -38,12 +38,13 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Function to extract Python code from OpenAI's response
 def extract_python_code(response_text):
-    # Use regex to extract lines of code between ``` or simply return everything after the explanation
+    # Use regex to extract Python code between ``` markers or similar
     code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
     if code_block:
-        return code_block.group(1)  # Extract code within the ``` block
+        return code_block.group(1).strip()  # Return the code within the ``` block
     else:
-        return response_text.strip()  # In case there are no ``` markers, return the entire response
+        # If no ``` block is found, return the whole response
+        return response_text.strip()
 
 # Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
@@ -53,14 +54,19 @@ def generate_openai_response_and_apply(prompt, df):
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}"}
+                {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}\nPlease return only valid Python code."}
             ],
             max_tokens=500
         )
 
         # Extract Python code from the response
-        response_text = response.choices[0].message.content
+        response_text = response.choices[0].message.content  # Correct attribute access
         python_code = extract_python_code(response_text)
+        
+        # Ensure the extracted code looks like valid Python before execution
+        if not python_code.startswith('import') and 'df' not in python_code:
+            st.error("Invalid Python code returned by OpenAI")
+            return df
         
         # Execute the extracted code in a controlled local environment
         local_env = {'df': df}
