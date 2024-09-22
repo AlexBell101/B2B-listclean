@@ -38,13 +38,20 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Function to extract Python code from OpenAI's response
 def extract_python_code(response_text):
-    # Use regex to extract Python code between ``` markers or similar
+    # Extract Python code between ``` markers or similar
     code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
     if code_block:
-        return code_block.group(1).strip()  # Return the code within the ``` block
+        return code_block.group(1).strip()
     else:
-        # If no ``` block is found, return the whole response
+        # If no code block is found, return the whole response
         return response_text.strip()
+
+# Function to validate the Python code before execution
+def validate_python_code(python_code):
+    # Ensure the code references 'df' (the DataFrame) and does not contain problematic statements
+    if 'df' in python_code and 'import' not in python_code:
+        return True
+    return False
 
 # Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
@@ -60,17 +67,16 @@ def generate_openai_response_and_apply(prompt, df):
         )
 
         # Extract Python code from the response
-        response_text = response.choices[0].message.content  # Correct attribute access
+        response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
-        
-        # Ensure the extracted code looks like valid Python before execution
-        if 'df' not in python_code or 'import' in python_code:
+
+        # Validate the Python code
+        if not validate_python_code(python_code):
             st.error("Invalid Python code returned by OpenAI")
             return df
-        
+
         # Execute the extracted code in a controlled local environment
         local_env = {'df': df}
-        
         try:
             exec(python_code, {}, local_env)
             df = local_env['df']  # Extract the updated DataFrame after exec
