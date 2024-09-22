@@ -5,8 +5,11 @@ import phonenumbers
 from io import BytesIO
 import pycountry
 
+# Create a custom OpenAI API client
+client = openai
+
 # Fetch the OpenAI API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+client.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Helper function for country code conversion
 def country_to_code(country_name):
