@@ -36,19 +36,23 @@ def extract_email_domain(df):
 # Fetch the OpenAI API key from Streamlit secrets
 client.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Function to extract Python code from OpenAI's response
+# Function to extract Python code from OpenAI's response and remove 'python' prefix
 def extract_python_code(response_text):
-    # Extract Python code between ``` markers or similar
+    # Use regex to extract Python code between ``` markers or similar
     code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
     if code_block:
-        return code_block.group(1).strip()
+        code = code_block.group(1).strip()
+        # Remove any 'python' prefix from the code block
+        if code.startswith("python"):
+            code = code[len("python"):].strip()
+        return code
     else:
-        # If no code block is found, return the whole response
+        # If no ``` block, return the whole response
         return response_text.strip()
 
 # Function to validate the Python code before execution
 def validate_python_code(python_code):
-    # Ensure the code references 'df' (the DataFrame) and does not contain problematic statements
+    # Ensure the code references 'df' and does not contain problematic statements
     if 'df' in python_code and 'import' not in python_code:
         return True
     return False
@@ -70,7 +74,7 @@ def generate_openai_response_and_apply(prompt, df):
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
 
-        # Display the OpenAI generated code for debugging
+        # Display OpenAI generated code for debugging
         st.write("**OpenAI Suggested Code:**")
         st.code(python_code)
 
