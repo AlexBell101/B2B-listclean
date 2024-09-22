@@ -37,42 +37,6 @@ def extract_email_domain(df):
 client.api_key = st.secrets["OPENAI_API_KEY"]
 
 
-# Function to extract and clean Python code from OpenAI's response
-def extract_python_code(response_text):
-    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
-    if code_block:
-        code = code_block.group(1).strip()
-        # Remove 'python' prefix
-        if code.startswith("python"):
-            code = code[len("python"):].strip()
-
-        # Strip out any import statements, data definitions, incomplete DataFrame constructions, or print statements
-        code = re.sub(r'import.*', '', code)  # Remove import statements
-        code = re.sub(r'data\s*=.*', '', code)  # Remove data creation
-        code = re.sub(r'print\(.*\)', '', code)  # Remove print statements
-        
-        # Remove any dictionary-style key-value pairs if they are not part of a full dict
-        code = re.sub(r"'.*?':\s*\[.*?\]", '', code)  # Remove floating dictionary key-value pairs
-
-        # Remove any leading or improper indentation
-        code_lines = code.split('\n')
-        code = "\n".join(line.lstrip() for line in code_lines)  # Strip leading indents
-
-        return code
-    else:
-        return response_text.strip()
-
-# Function to validate and replace 'data' with 'df'
-def clean_and_validate_code(python_code):
-    # Automatically replace 'data' with 'df' if necessary
-    python_code = python_code.replace("data", "df")
-
-    # Ensure the code references 'df' and does not contain problematic statements
-    if 'df' in python_code and 'import' not in python_code:
-        return python_code
-    return None
-
-# Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
     try:
         # Make the OpenAI API request
@@ -88,10 +52,6 @@ def generate_openai_response_and_apply(prompt, df):
         # Extract Python code from the response
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
-
-        # Log the code for debugging
-        st.write("**Generated Code from OpenAI:**")
-        st.code(python_code)
 
         # Clean and validate the Python code
         python_code = clean_and_validate_code(python_code)
