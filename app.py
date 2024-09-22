@@ -36,7 +36,7 @@ def extract_email_domain(df):
 # Fetch the OpenAI API key from Streamlit secrets
 client.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Function to extract Python code from OpenAI's response and remove 'python' prefix
+# Function to extract and clean Python code from OpenAI's response
 def extract_python_code(response_text):
     code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
     if code_block:
@@ -45,10 +45,12 @@ def extract_python_code(response_text):
         if code.startswith("python"):
             code = code[len("python"):].strip()
 
-        # Strip out any import statements, data definitions, or print statements
+        # Strip out any import statements, data definitions, incomplete DataFrame constructions, or print statements
         code = re.sub(r'import.*', '', code)  # Remove import statements
-        code = re.sub(r'data.*', '', code)  # Remove data creation
+        code = re.sub(r'data\s*=.*', '', code)  # Remove data creation
+        code = re.sub(r'df\s*=\s*pd\.DataFrame\((.*?)$', '', code)  # Remove incomplete DataFrame creation
         code = re.sub(r'print\(.*\)', '', code)  # Remove print statements
+
         return code
     else:
         return response_text.strip()
@@ -93,13 +95,7 @@ def generate_openai_response_and_apply(prompt, df):
             df = local_env['df']  # Extract the updated DataFrame after exec
         except SyntaxError as syntax_error:
             st.error(f"Error executing OpenAI code: {syntax_error}")
-            return df
-
-        return df
-
-    except Exception as e:
-        st.error(f"OpenAI request failed: {e}")
-        return df
+            retur
 # UI setup for the app
 st.set_page_config(page_title="List Cleaner SaaS", layout="centered")
 st.title("📋 List Cleaner SaaS")
