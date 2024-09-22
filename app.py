@@ -54,7 +54,7 @@ def generate_openai_response_and_apply(prompt, df):
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}\nPlease return only valid Python code."}
+                {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}\nPlease return only valid Python code without explanations."}
             ],
             max_tokens=500
         )
@@ -64,7 +64,7 @@ def generate_openai_response_and_apply(prompt, df):
         python_code = extract_python_code(response_text)
         
         # Ensure the extracted code looks like valid Python before execution
-        if not python_code.startswith('import') and 'df' not in python_code:
+        if 'df' not in python_code or 'import' in python_code:
             st.error("Invalid Python code returned by OpenAI")
             return df
         
