@@ -90,8 +90,8 @@ def generate_openai_response_and_apply(prompt, df):
         python_code = extract_python_code(response_text)
 
         # Log the code for debugging
-        st.write("**Generated Code from OpenAI:**")
-        st.code(python_code)
+        #st.write("**Generated Code from OpenAI:**")
+       # st.code(python_code)
 
         # Clean and validate the Python code
         python_code = clean_and_validate_code(python_code)
