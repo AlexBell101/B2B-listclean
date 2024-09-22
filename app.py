@@ -29,12 +29,18 @@ def extract_email_domain(df):
         df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
     return df
 
-# Function to call OpenAI's ChatCompletion model and apply transformation automatically
+# Function to extract email domain
+def extract_email_domain(df):
+    if 'Email' in df.columns:
+        df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
+    return df
+
+# Function to call OpenAI API with chat models and apply transformation automatically
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # Using the correct API call for chat completions
+        # Correct API call for chat models
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Make sure you're using a chat model like gpt-3.5-turbo
+            model="gpt-3.5-turbo",  # Use chat model (gpt-3.5-turbo or gpt-4)
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}"}
