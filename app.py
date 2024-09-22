@@ -38,7 +38,7 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 # Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # Correct API call with custom client object
+        # Make the OpenAI API request
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -47,11 +47,14 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
-
-       # Correct extraction of the response content in the latest OpenAI API
-        reply = response.choices[0].message.content
-
-         # Dynamically execute the returned code in a controlled way
+        
+        # Extract the Python code from the response
+        code_from_openai = response.choices[0].message.content
+        
+        # Display the OpenAI suggestion for debugging or logging (optional)
+        st.write(f"OpenAI Suggested Code:\n{code_from_openai}")
+        
+        # Dynamically execute the returned code in a controlled way
         # Create a local environment (namespace) for the exec call
         local_env = {'df': df}
 
@@ -60,7 +63,6 @@ def generate_openai_response_and_apply(prompt, df):
         
         # Extract the updated DataFrame from the local environment after exec
         df = local_env['df']
-        
         
         return df
 
