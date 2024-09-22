@@ -51,7 +51,16 @@ def generate_openai_response_and_apply(prompt, df):
        # Correct extraction of the response content in the latest OpenAI API
         reply = response.choices[0].message.content
 
-        st.write(reply)  # Display the AI's response
+         # Dynamically execute the returned code in a controlled way
+        # Create a local environment (namespace) for the exec call
+        local_env = {'df': df}
+
+        # Use exec to execute the OpenAI-generated Python code in this environment
+        exec(code_from_openai, {}, local_env)
+        
+        # Extract the updated DataFrame from the local environment after exec
+        df = local_env['df']
+        
         
         return df
 
