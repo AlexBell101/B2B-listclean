@@ -80,19 +80,11 @@ def generate_openai_response_and_apply(prompt, df):
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
 
-        # Display OpenAI generated code for debugging
-        st.write("**OpenAI Suggested Code (before cleaning):**")
-        st.code(python_code)
-
         # Clean and validate the Python code
         python_code = clean_and_validate_code(python_code)
         if not python_code:
             st.error("Invalid Python code returned by OpenAI")
             return df
-
-        # Display cleaned code for debugging
-        st.write("**Cleaned Python Code:**")
-        st.code(python_code)
 
         # Execute the extracted code in a controlled local environment
         local_env = {'df': df}
