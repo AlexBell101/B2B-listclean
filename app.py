@@ -35,6 +35,15 @@ def extract_email_domain(df):
 # Fetch the OpenAI API key from Streamlit secrets
 client.api_key = st.secrets["OPENAI_API_KEY"]
 
+# Function to extract Python code from OpenAI's response
+def extract_python_code(response_text):
+    # Use regex to extract lines of code between ``` or simply return everything after the explanation
+    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
+    if code_block:
+        return code_block.group(1)  # Extract code within the ``` block
+    else:
+        return response_text.strip()  # In case there are no ``` markers, return the entire response
+
 # Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
     try:
@@ -47,23 +56,21 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
-        
-        # Extract the Python code from the response
-        code_from_openai = response.choices[0].message.content
-        
-        # Display the OpenAI suggestion for debugging or logging (optional)
-        st.write(f"OpenAI Suggested Code:\n{code_from_openai}")
-        
-        # Dynamically execute the returned code in a controlled way
-        # Create a local environment (namespace) for the exec call
-        local_env = {'df': df}
 
-        # Use exec to execute the OpenAI-generated Python code in this environment
-        exec(code_from_openai, {}, local_env)
+        # Extract Python code from the response
+        response_text = response.choices[0].message['content']
+        python_code = extract_python_code(response_text)
         
-        # Extract the updated DataFrame from the local environment after exec
-        df = local_env['df']
+        # Execute the extracted code in a controlled local environment
+        local_env = {'df': df}
         
+        try:
+            exec(python_code, {}, local_env)
+            df = local_env['df']  # Extract the updated DataFrame after exec
+        except SyntaxError as syntax_error:
+            st.error(f"Error executing OpenAI code: {syntax_error}")
+            return df
+
         return df
 
     except Exception as e:
