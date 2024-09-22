@@ -29,18 +29,21 @@ def extract_email_domain(df):
         df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
     return df
 
-# Function to process OpenAI response and apply transformation automatically
+# Function to call OpenAI's ChatCompletion model and apply transformation automatically
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # Corrected OpenAI API call using 'Completion.create' for latest API version
-        response = openai.Completion.create(
-            model="text-davinci-003",  # Use text-based models for 'Completion'
-            prompt=f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}",
+        # Using the correct API call for chat completions
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Make sure you're using a chat model like gpt-3.5-turbo
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}"}
+            ],
             max_tokens=500
         )
 
-        # Extract the content from the OpenAI response
-        reply = response['choices'][0]['text']
+        # Extract the content from the OpenAI response correctly
+        reply = response['choices'][0]['message']['content']
         st.write(reply)  # Display the AI's response
 
         # Modify dataframe based on the OpenAI response, if necessary
@@ -49,12 +52,6 @@ def generate_openai_response_and_apply(prompt, df):
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
-
-
-    except Exception as e:
-        st.error(f"OpenAI request failed: {e}")
-        return df
-
 # UI setup for the app
 st.set_page_config(page_title="List Cleaner SaaS", layout="centered")
 st.title("📋 List Cleaner SaaS")
