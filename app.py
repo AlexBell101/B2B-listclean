@@ -51,6 +51,9 @@ def extract_python_code(response_text):
         code = re.sub(r'data\s*=.*', '', code)  # Remove data creation
         code = re.sub(r'df\s*=\s*pd\.DataFrame\((.*?)$', '', code)  # Remove incomplete DataFrame creation
         code = re.sub(r'print\(.*\)', '', code)  # Remove print statements
+        
+        # Remove any unmatched braces
+        code = re.sub(r'[{}]', '', code)  # Remove all curly braces (optional, based on the use case)
 
         # Remove any leading or improper indentation
         code_lines = code.split('\n')
@@ -86,6 +89,10 @@ def generate_openai_response_and_apply(prompt, df):
         # Extract Python code from the response
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
+
+        # Log the code for debugging
+        st.write("**Generated Code from OpenAI:**")
+        st.code(python_code)
 
         # Clean and validate the Python code
         python_code = clean_and_validate_code(python_code)
