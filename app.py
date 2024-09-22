@@ -58,7 +58,7 @@ def generate_openai_response_and_apply(prompt, df):
         )
 
         # Extract Python code from the response
-        response_text = response.choices[0].message['content']
+        response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
         
         # Execute the extracted code in a controlled local environment
