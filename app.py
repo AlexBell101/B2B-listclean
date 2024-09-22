@@ -44,12 +44,16 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
+
+        # Correct way to extract response content (no subscripting)
+        reply = response['choices'][0]['message']['content']  # WRONG (don't subscript it)
+        # Instead, access the response properly as an object:
+        reply = response.choices[0].message['content']  # Correct way
         
-        # Accessing the response correctly without subscripting
-        reply = response.choices[0].message['content']
-        st.write(reply)
+        st.write(reply)  # Display the AI's response
         
         return df
+
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
