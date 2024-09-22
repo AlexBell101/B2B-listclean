@@ -70,6 +70,10 @@ def generate_openai_response_and_apply(prompt, df):
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
 
+        # Display the OpenAI generated code for debugging
+        st.write("**OpenAI Suggested Code:**")
+        st.code(python_code)
+
         # Validate the Python code
         if not validate_python_code(python_code):
             st.error("Invalid Python code returned by OpenAI")
