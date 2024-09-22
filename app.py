@@ -48,10 +48,8 @@ def generate_openai_response_and_apply(prompt, df):
             max_tokens=500
         )
 
-        # Correct way to extract response content in latest OpenAI API
-        reply = response.choices[0].message['content']  # WRONG
-        # Correct way:
-        reply = response.choices[0].message.content  # Use .content directly
+       # Correct extraction of the response content in the latest OpenAI API
+        reply = response.choices[0].message.content
 
         st.write(reply)  # Display the AI's response
         
