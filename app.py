@@ -75,18 +75,26 @@ def clean_and_validate_code(python_code):
         return python_code
     return None
 
-# Now, use client.chat.completions.create()
 def generate_openai_response_and_apply(prompt, df):
     try:
+        # Use the refined prompt for the OpenAI API request
+        refined_prompt = f"""
+        Please generate only the Python code that modifies the dataframe `df`.
+        Avoid including imports, data definitions, print statements, or any explanations.
+        The code should focus exclusively on modifying the `df` dataframe based on the following request:
+        {prompt}
+        """
+
         # Make the OpenAI API request
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}\nPlease return only valid Python code without explanations."}
+                {"role": "user", "content": refined_prompt}
             ],
             max_tokens=500
         )
+
 
         # Extract Python code from the response
         response_text = response.choices[0].message.content
