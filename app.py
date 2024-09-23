@@ -77,14 +77,14 @@ def clean_and_validate_code(python_code):
 
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # Use the refined prompt for the OpenAI API request
+        # Create a refined prompt to ask OpenAI to work with specific column names
         refined_prompt = f"""
-        Please generate only the Python code that modifies the dataframe `df`.
-        Avoid including imports, data definitions, print statements, or any explanations.
-        The code should focus exclusively on modifying the `df` dataframe based on the following request:
-        {prompt}
+        Please generate Python code that modifies the dataframe `df`.
+        The dataframe has the following columns: {', '.join(df.columns)}.
+        Focus only on modifying the dataframe based on this request: {prompt}.
+        Avoid adding imports, data definitions, or print statements.
         """
-
+        
         # Make the OpenAI API request
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -94,6 +94,31 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
+
+        # Process the returned Python code as before...
+        response_text = response.choices[0].message.content
+        python_code = extract_python_code(response_text)
+
+        # Clean and validate the Python code
+        python_code = clean_and_validate_code(python_code)
+        if not python_code:
+            st.error("Invalid Python code returned by OpenAI")
+            return df
+
+        # Execute the extracted code in a controlled environment
+        local_env = {'df': df}
+        try:
+            exec(python_code, {}, local_env)
+            df = local_env['df']  # Extract the updated DataFrame after exec
+        except SyntaxError as syntax_error:
+            st.error(f"Error executing OpenAI code: {syntax_error}")
+            return df
+
+        return df
+
+    except Exception as e:
+        st.error(f"OpenAI request failed: {e}")
+        return df
 
 
         # Extract Python code from the response
