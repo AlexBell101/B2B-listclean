@@ -46,13 +46,16 @@ def extract_python_code(response_text):
         if code.startswith("python"):
             code = code[len("python"):].strip()
 
-        # Strip out any import statements, data definitions, incomplete DataFrame constructions, or print statements
+        # Strip out any import statements, data definitions, or print statements
         code = re.sub(r'import.*', '', code)  # Remove import statements
         code = re.sub(r'data\s*=.*', '', code)  # Remove data creation
         code = re.sub(r'print\(.*\)', '', code)  # Remove print statements
         
-        # Remove any dictionary-style key-value pairs if they are not part of a full dict
-        code = re.sub(r"'.*?':\s*\[.*?\]", '', code)  # Remove floating dictionary key-value pairs
+        # Remove any unmatched braces
+        open_braces = code.count('{')
+        close_braces = code.count('}')
+        if open_braces != close_braces:
+            code = re.sub(r'[{}]', '', code)  # Remove all curly braces if they are unbalanced
 
         # Remove any leading or improper indentation
         code_lines = code.split('\n')
@@ -83,36 +86,6 @@ def generate_openai_response_and_apply(prompt, df):
                 {"role": "user", "content": f"Here is a dataset:\n\n{df.head().to_csv()}\n\nHere is the request:\n{prompt}\nPlease return only valid Python code without explanations."}
             ],
             max_tokens=500
-        )
-
-        # Extract Python code from the response
-        response_text = response.choices[0].message.content
-        python_code = extract_python_code(response_text)
-
-        # Log the code for debugging
-        #st.write("**Generated Code from OpenAI:**")
-       # st.code(python_code)
-
-        # Clean and validate the Python code
-        python_code = clean_and_validate_code(python_code)
-        if not python_code:
-            st.error("Invalid Python code returned by OpenAI")
-            return df
-
-        # Execute the extracted code in a controlled local environment
-        local_env = {'df': df}
-        try:
-            exec(python_code, {}, local_env)
-            df = local_env['df']  # Extract the updated DataFrame after exec
-        except SyntaxError as syntax_error:
-            st.error(f"Error executing OpenAI code: {syntax_error}")
-            return df
-
-        return df
-
-    except Exception as e:
-        st.error(f"OpenAI request failed: {e}")
-        return df
 
 
 # UI setup for the app
