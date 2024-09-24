@@ -216,7 +216,6 @@ if uploaded_file is not None:
                 elif output_format == 'Excel':
                     output = BytesIO()
                     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                    status_df.to_excel(writer,
                                         status_df.to_excel(writer, index=False)
                     writer.save()
                     st.download_button(label=f"Download Excel for {status_value}",
