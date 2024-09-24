@@ -9,17 +9,19 @@ import re
 # Set the page config before any other Streamlit code
 st.set_page_config(page_title="List Karma", layout="centered")
 
-# Custom CSS to style the app
+# Custom CSS to style the sidebar and select boxes
 st.markdown(
     """
     <style>
-    /* Change background color of select boxes and radio buttons */
-    div[data-baseweb="select"] > div {
+    /* Change the background color of the entire sidebar */
+    [data-testid="stSidebar"] {
         background-color: #6721F0;
     }
 
-    div.stRadio > div {
-        background-color: #6721F0;
+    /* Change the font color and style of sidebar components */
+    [data-testid="stSidebar"] * {
+        color: white;
+        font-family: 'Roboto', sans-serif;
     }
 
     /* Set font to Roboto for the entire app */
@@ -28,6 +30,12 @@ st.markdown(
     html, body, [class*="css"]  {
         font-family: 'Roboto', sans-serif;
     }
+
+    /* Change the background color of select boxes and radio buttons */
+    div[data-baseweb="select"] > div, div.stRadio > div {
+        background-color: #6721F0;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
