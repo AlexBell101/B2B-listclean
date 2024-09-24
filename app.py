@@ -166,47 +166,41 @@ if uploaded_file is not None:
 
     custom_request = st.sidebar.text_area("Enter any specific custom request")
 
-if st.button("Clean the data"):
-    if normalize_names and 'Name' in df.columns:
-        df['Name'] = df['Name'].str.title()
+    if st.button("Clean the data"):
+        if normalize_names and 'Name' in df.columns:
+            df['Name'] = df['Name'].str.title()
 
-    if country_format == "Country Code" and 'Country' in df.columns:
-        df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
+        if country_format == "Country Code" and 'Country' in df.columns:
+            df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
 
-    if phone_cleanup and 'Phone' in df.columns:
-        df['Phone'] = df['Phone'].apply(clean_phone)
+        if phone_cleanup and 'Phone' in df.columns:
+            df['Phone'] = df['Phone'].apply(clean_phone)
 
-    # Ensure 'Domain' column is created before classifying emails
-    if extract_domain:
-        df = extract_email_domain(df)
+        if extract_domain:
+            df = extract_email_domain(df)
 
-    if classify_emails:
-        # Ensure that 'Domain' column exists before classifying email types
-        if 'Domain' in df.columns:
+        if classify_emails:
             df = classify_email_type(df)
-        else:
-            st.error("The 'Domain' column is missing. Ensure email domain extraction is enabled.")
+        if remove_personal:
+            df = remove_personal_emails(df)
 
-    if remove_personal:
-        df = remove_personal_emails(df)
+        if clean_address:
+            df = split_address_2(df)
+        if split_city_state_option:
+            df = split_city_state(df)
 
-    if clean_address:
-        df = split_address_2(df)
-    
-    if split_city_state_option:
-        df = split_city_state(df)
+        if add_lead_source:
+            df['Lead Source'] = lead_source_value
+        if add_lead_source_detail:
+            df['Lead Source Detail'] = lead_source_detail_value
+        if add_campaign:
+            df['Campaign'] = campaign_value
 
-    if add_lead_source:
-        df['Lead Source'] = lead_source_value
-    if add_lead_source_detail:
-        df['Lead Source Detail'] = lead_source_detail_value
-    if add_campaign:
-        df['Campaign'] = campaign_value
+        if custom_request:
+            df = generate_openai_response_and_apply(custom_request, df)
 
-    # Handle custom OpenAI requests, etc.
-
-    st.write("### Data Preview (After Cleanup):")
-    st.dataframe(df.head())
+        st.write("### Data Preview (After Cleanup):")
+        st.dataframe(df.head())
 
         if split_by_status and status_column:
             unique_status_values = df[status_column].unique()
