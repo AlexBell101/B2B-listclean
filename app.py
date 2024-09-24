@@ -6,6 +6,29 @@ from io import BytesIO
 import pycountry
 import re
 
+# Custom CSS to style the app
+st.markdown(
+    """
+    <style>
+    /* Change background color of select boxes and radio buttons */
+    div[data-baseweb="select"] > div {
+        background-color: #6721F0;
+    }
+
+    div.stRadio > div {
+        background-color: #6721F0;
+    }
+
+    /* Set font to Roboto for the entire app */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+
+    html, body, [class*="css"]  {
+        font-family: 'Roboto', sans-serif;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # Create a custom OpenAI API client
 client = openai
 
