@@ -6,6 +6,9 @@ from io import BytesIO
 import pycountry
 import re
 
+# Set the page config before any other Streamlit code
+st.set_page_config(page_title="List Karma", layout="centered")
+
 # Custom CSS to style the app
 st.markdown(
     """
@@ -29,6 +32,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 # Create a custom OpenAI API client
 client = openai
 
@@ -147,7 +151,6 @@ def generate_openai_response_and_apply(prompt, df):
         return df
 
 # UI setup for the app
-st.set_page_config(page_title="List Karma", layout="centered")
 st.title("📋 List Karma")
 st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot.")
 
