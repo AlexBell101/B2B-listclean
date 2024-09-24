@@ -151,7 +151,7 @@ def generate_openai_response_and_apply(prompt, df):
 
 # UI setup for the app
 st.title("📋 List Karma")
-st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot.")
+st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot. Use the Karmic AI Prompt if you need a specific transformation applied to your file.")
 
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
 if uploaded_file is not None:
@@ -189,7 +189,7 @@ if uploaded_file is not None:
     split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
     status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-    custom_request = st.sidebar.text_area("Enter any specific custom request")
+    custom_request = st.sidebar.text_area("Karmic AI Prompt")
 
     if st.button("Clean the data"):
         if normalize_names and 'Name' in df.columns:
