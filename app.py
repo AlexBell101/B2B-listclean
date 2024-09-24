@@ -5,6 +5,7 @@ import phonenumbers
 from io import BytesIO
 import pycountry
 import re
+import openpyxl
 
 # Set the page config before any other Streamlit code
 st.set_page_config(page_title="List Karma", layout="centered")
