@@ -166,7 +166,7 @@ if uploaded_file is not None:
 
     custom_request = st.sidebar.text_area("Enter any specific custom request")
 
-if st.button("Clean the data"):
+    if st.button("Clean the data"):
     if normalize_names and 'Name' in df.columns:
         df['Name'] = df['Name'].str.title()
 
