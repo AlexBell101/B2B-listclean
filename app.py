@@ -148,7 +148,7 @@ def generate_openai_response_and_apply(prompt, df):
 
 
 # UI setup for the app
-st.set_page_config(page_title="List Cleaner SaaS", layout="centered")
+st.set_page_config(page_title="List Karma", layout="centered")
 st.title("📋 List Cleaner SaaS")
 st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot.")
 
