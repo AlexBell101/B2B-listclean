@@ -177,10 +177,13 @@ if uploaded_file is not None:
             df['Phone'] = df['Phone'].apply(clean_phone)
 
         if extract_domain:
-            df = extract_email_domain(df)
+            df = extract_email_domain(df)  # Ensure 'Domain' column is created
 
-        if classify_emails:
+        if 'Domain' in df.columns:
             df = classify_email_type(df)
+        else:
+            st.error("The 'Domain' column is missing. Ensure email domain extraction is enabled.")
+
         if remove_personal:
             df = remove_personal_emails(df)
 
