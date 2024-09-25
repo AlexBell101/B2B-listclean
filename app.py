@@ -1,3 +1,4 @@
+import functools
 import openai
 import streamlit as st
 import pandas as pd
@@ -35,8 +36,16 @@ st.markdown(
 # Create a custom OpenAI API client
 client = openai
 
-# Fetch the OpenAI API key from Streamlit secrets
-client.api_key = st.secrets["OPENAI_API_KEY"]
+@functools.cache
+def openai_key_loaded()->bool:
+    # Fetch the OpenAI API key from Streamlit secrets
+    try:
+        key = st.secrets["OPENAI_API_KEY"]
+        client.api_key = key
+    except (FileNotFoundError, KeyError):
+        key = None
+        st.toast("No OpenAI key Found, LLM funcationality will be disabled")
+openai_key_loaded()
 
 # List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
@@ -189,7 +198,7 @@ if uploaded_file is not None:
     split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
     status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-    custom_request = st.sidebar.text_area("Karmic AI Prompt")
+    custom_request = st.sidebar.text_area("Karmic AI Prompt") if open_ai_key() is not None else None
 
     if st.button("Clean the data"):
         if normalize_names and 'Name' in df.columns:
@@ -224,7 +233,7 @@ if uploaded_file is not None:
         if add_campaign:
             df['Campaign'] = campaign_value
 
-        if custom_request:
+        if custom_request and open_ai_key() is not None:
             df = generate_openai_response_and_apply(custom_request, df)
 
         st.write("### Data Preview (After Cleanup):")
