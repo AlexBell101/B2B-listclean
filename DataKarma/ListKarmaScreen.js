@@ -3,6 +3,8 @@ import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Platform } from '
 import * as DocumentPicker from 'expo-document-picker';
 import Papa from "papaparse";
 
+import DataTable from './components/DataTable';
+
 const ListKarmaScreen = () => {
     const [fileContent, setFileContent] = useState(null); // To store parsed content
 
@@ -16,15 +18,13 @@ const ListKarmaScreen = () => {
                 let file = res.output[0];
                 console.log('File selected:', file.name);
 
+                // For web: normal expo-readfile does not work in Web
                 if (Platform.OS === 'web') {
-                    // For web: Use FileReader to read the file
                     const reader = new FileReader();
                     reader.addEventListener(
                         "load",
                         () => {
-                            // this will then display a text file
                             console.log(reader.result);
-                            //content.innerText = reader.result;
                             Papa.parse(file, {
                                 complete: function (results) {
                                     console.log(results);
@@ -52,29 +52,18 @@ const ListKarmaScreen = () => {
 
     return (
         <View style={styles.container}>
-            {fileContent && (
-                <ScrollView style={styles.tableContainer}>
-                    {/* Table Header */}
-                    <View style={styles.row}>
-                        {fileContent[0].map((header, index) => (
-                            <Text key={index} style={[styles.cell, styles.headerCell]}>
-                                {header}
-                            </Text>
-                        ))}
-                    </View>
+            <div style={{ padding: '20px' }}>
 
-                    {/* Table Data */}
-                    {fileContent.slice(1).map((row, rowIndex) => (
-                        <View key={rowIndex} style={styles.row}>
-                            {row.map((cell, cellIndex) => (
-                                <Text key={cellIndex} style={styles.cell}>
-                                    {cell}
-                                </Text>
-                            ))}
-                        </View>
-                    ))}
-                </ScrollView>
-            )}
+                {fileContent && (
+                    <h2>Data Preview (Before Cleanup):
+                    </h2>
+                )}
+
+                {fileContent && (
+
+                    <DataTable parsedData={fileContent} />
+                )}
+            </div>
 
             <TouchableOpacity
                 style={styles.button}
