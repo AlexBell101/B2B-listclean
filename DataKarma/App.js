@@ -2,13 +2,12 @@ import { StatusBar } from 'expo-status-bar';
 import { ImageBackground, Image, StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from './HomeScreen'; // Import your screen here
-import { createDrawerNavigator } from '@react-navigation/drawer';
 import ListKarmaScreen from './ListKarmaScreen';
+import HomeScreen from './HomeScreen';
+//import CleanupOptionsDrawer from './CleanupOptionsDrawer';
 
 
 const Stack = createStackNavigator();
-const Drawer = createDrawerNavigator();
 
 
 // static
@@ -24,14 +23,6 @@ const LogoTitle = () => {
   );
 };
 
-const DrawerNavigator = () => {
-  return (
-    <Drawer.Navigator initialRouteName="ListKarma">
-      <Drawer.Screen name="List Karma" component={ListKarmaScreen} />
-    </Drawer.Navigator>
-  );
-};
-
 
 export default function App() {
   return (
@@ -43,14 +34,14 @@ export default function App() {
           options={{
             headerTitle: (props) => <LogoTitle {...props} />,
             headerTitleAlign: 'center',
-            headerStyle: styles.header, 
+            headerStyle: styles.header,
           }}
         />
         <Stack.Screen
           name="ListKarma"
-          component={DrawerNavigator} 
+          component={ListKarmaScreen}
           options={{
-            headerShown: false, 
+            headerShown: true,
           }}
         />
       </Stack.Navigator>
@@ -60,8 +51,8 @@ export default function App() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#1B1B1B', 
-    shadowColor: 'transparent', 
+    backgroundColor: '#1B1B1B',
+    shadowColor: 'transparent',
   },
   logoContainer: {
     flex: 1,
@@ -69,7 +60,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 120, 
+    width: 120,
     height: 40,
   },
 });
