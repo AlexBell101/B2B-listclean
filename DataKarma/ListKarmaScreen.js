@@ -6,7 +6,9 @@ import { RadioButton } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import DataTable from './components/DataTable';
 
+
 const ListKarmaScreen = () => {
+    const [latestChangeDate, setLatestChangeDate] = useState(null); // store the last change date
     const [fileContent, setFileContent] = useState(null); // To store parsed content
     const [outputFormat, setOutputFormat] = useState('csv');
     const [countryFieldFormat, setCountryFieldFormat] = useState('leave');
@@ -17,6 +19,30 @@ const ListKarmaScreen = () => {
     const [removeRowsWithPersonalEmails, setremoveRowsWithPersonalEmails] = useState(false);
     const [separateAddressFields, setSeparateAddressFields] = useState(false);
     const [splitCombinedCityAndState, setSplitCombinedCityAndState] = useState(false);
+
+    const [tableHistory, setTableHistory] = useState([]);
+
+
+    const UploadAListButton = () => {
+
+        return (
+            <TouchableOpacity style={styles.button} onPress={handleFilePicker}>
+                <Text style={styles.buttonText}>Upload a List</Text>
+            </TouchableOpacity>
+        );
+
+    };
+
+    const handleApply = () => {
+        if (fileContent) {
+            const currentDate = new Date().toLocaleString(); // Get current date and time
+            const newTableEntry = {
+                data: fileContent,
+                timestamp: currentDate,
+            };
+            setTableHistory([...tableHistory, newTableEntry]); // Add new table to history
+        }
+    };
 
     const handleFilePicker = async () => {
         try {
@@ -124,23 +150,85 @@ const ListKarmaScreen = () => {
                     />
                 </View>
 
+
+                {/* Checkbox for email classification */}
+                <View style={styles.checkboxContainer}>
+                    <Text>Capitalize First Letter of Names?</Text>
+                    <Switch
+                        value={capitalizeLetterOfNames}
+                        onValueChange={(newValue) => setCapitalizeLetterOfNames(newValue)}
+                    />
+                </View>
+
+                {/* Checkbox for email classification */}
+                <View style={styles.checkboxContainer}>
+                    <Text>Standardize Phone Numbers?</Text>
+                    <Switch
+                        value={standardisePhoneNumbers}
+                        onValueChange={(newValue) => setStandardisePhoneNumbers(newValue)}
+                    />
+                </View>
+
+                {/* Checkbox for email classification */}
+                <View style={styles.checkboxContainer}>
+                    <Text>Extract Email Domains?</Text>
+                    <Switch
+                        value={extractEmailDomains}
+                        onValueChange={(newValue) => setExtractEmailDomains(newValue)}
+                    />
+                </View>
+
+                {/* Checkbox for email classification */}
+                <View style={styles.checkboxContainer}>
+                    <Text>Remove rows with personal Emails?</Text>
+                    <Switch
+                        value={removeRowsWithPersonalEmails}
+                        onValueChange={(newValue) => setremoveRowsWithPersonalEmails(newValue)}
+                    />
+                </View>
+
+                {/* Checkbox for email classification */}
+                <View style={styles.checkboxContainer}>
+                    <Text>Separate Address Fields?</Text>
+                    <Switch
+                        value={separateAddressFields}
+                        onValueChange={(newValue) => setSeparateAddressFields(newValue)}
+                    />
+                </View>
+
+                <View style={styles.checkboxContainer}>
+                    <Text>Split Combined City and State Fields?</Text>
+                    <Switch
+                        value={splitCombinedCityAndState}
+                        onValueChange={(newValue) => setSplitCombinedCityAndState(newValue)}
+                    />
+                </View>
+
                 {/* Apply Button */}
-                <Button title="Apply" onPress={() => console.log('Apply clicked')} />
+                <Button title="Apply" onPress={handleApply} />
             </View>
 
             {/* Right Panel - Data Table */}
-            <View style={styles.rightPanel}>
+            <ScrollView style={styles.rightPanel}>
                 {fileContent && (
                     <>
-                        <Text style={styles.title}>Data Preview (Before Cleanup):</Text>
+
+                        <Text style={styles.title}>Original Upload:</Text>
                         <DataTable parsedData={fileContent} />
                     </>
                 )}
-
-                <TouchableOpacity style={styles.button} onPress={handleFilePicker}>
-                    <Text style={styles.buttonText}>Upload a List</Text>
-                </TouchableOpacity>
-            </View>
+                {tableHistory.length > 0 && (
+                    tableHistory.map((table, index) => (
+                        <View key={index} style={styles.tableContainer}>
+                            <Text style={styles.title}>Alteration #{index}: {table.timestamp}</Text>
+                            <DataTable parsedData={table.data} />
+                        </View>
+                    ))
+                )}
+                {!fileContent && (
+                    <UploadAListButton></UploadAListButton>
+                )}
+            </ScrollView>
         </View>
     );
 };
@@ -152,13 +240,13 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     leftPanel: {
-        flex: 1,
+        flex: 0.3,
         paddingRight: 20,
         borderRightWidth: 1,
         borderRightColor: '#ccc',
     },
     rightPanel: {
-        flex: 2,
+        flex: 0.7,
         paddingLeft: 20,
     },
     button: {
