@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
 // Papa parse or whatever output...
 const DataTable = ({ parsedData }) => {
@@ -9,10 +10,97 @@ const DataTable = ({ parsedData }) => {
         label: header,
     }))); // Initialize columns from the first row (headers)
 
-    // const columns = parsedData[0].map((header, index) => ({
-    //     key: `column_${index}`,
-    //     label: header,
-    // }));
+    // FIXME: can probably cover 90% with this list but mgiht need more
+    const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com'];
+
+    const countryToCode = (countryName) => {
+        const countryCodes = {
+            'United States': 'US',
+            'Canada': 'CA',
+            'United Kingdom': 'GB',
+            //FIXME: need to find all mappings 
+        };
+        return countryCodes[countryName] || countryName; A
+    };
+
+
+    const cleanPhone = (phone) => {
+        const parsedPhone = parsePhoneNumberFromString(phone, 'US');
+        return parsedPhone ? parsedPhone.format('E.164') : phone;
+    };
+
+    const extractEmailDomain = (data) => {
+        if (data[0].includes('Email')) {
+            const emailIndex = data[0].indexOf('Email');
+            data.forEach((row, index) => {
+                if (index !== 0 && row[emailIndex]) {
+                    const email = row[emailIndex];
+                    const domain = email.includes('@') ? email.split('@')[1] : '';
+                    row.push(domain); 
+                }
+            });
+            data[0].push('Domain');
+        }
+        return data;
+    };
+
+    const classifyEmailType = (data) => {
+        if (data[0].includes('Domain')) {
+            const domainIndex = data[0].indexOf('Domain'); // probably need more than one case
+            data.forEach((row, index) => {
+                if (index !== 0) {
+                    const domain = row[domainIndex];
+                    const emailType = personalDomains.includes(domain) ? 'Personal' : 'Business';
+                    row.push(emailType); 
+                }
+            });
+            data[0].push('Email Type'); 
+        }
+        return data;
+    };
+
+    const removePersonalEmails = (data) => {
+        if (data[0].includes('Domain')) {
+            const domainIndex = data[0].indexOf('Domain');
+            return data.filter((row, index) => index === 0 || !personalDomains.includes(row[domainIndex]));
+        }
+        return data;
+    };
+
+    const splitAddress2 = (data) => {
+        if (data[0].includes('Address')) {
+            const addressIndex = data[0].indexOf('Address');
+            data.forEach((row, index) => {
+                if (index !== 0) {
+                    const address = row[addressIndex];
+                    const address1 = address.split(/\b(Apt|Unit|Suite)\b/i)[0].trim();
+                    const address2Match = address.match(/\b(Apt|Unit|Suite)\b.*$/i);
+                    const address2 = address2Match ? address2Match[0] : '';
+                    row.push(address1);
+                    row.push(address2);
+                }
+            });
+            data[0].push('Address 1');
+            data[0].push('Address 2');
+        }
+        return data;
+    };
+
+    const splitCityState = (data) => {
+        if (data[0].includes('City_State')) {
+            const cityStateIndex = data[0].indexOf('City_State');
+            data.forEach((row, index) => {
+                if (index !== 0) {
+                    const [city, state] = row[cityStateIndex].split(',').map(item => item.trim());
+                    row.push(city);
+                    row.push(state);
+                }
+            });
+            data[0].push('City');
+            data[0].push('State');
+        }
+        return data;
+    };
 
     const handleSort = (key) => {
         let direction = 'asc';
@@ -98,12 +186,6 @@ const DataTable = ({ parsedData }) => {
                 </tbody>
             </table>
 
-            {/* <button onClick={handleAddRow} style={{ marginTop: '10px' }}>
-                Add Row
-            </button>
-            <button onClick={handleAddColumn} style={{ marginTop: '10px', marginRight: '10px' }}>
-                Add Column
-            </button> */}
         </div>
     );
 };
