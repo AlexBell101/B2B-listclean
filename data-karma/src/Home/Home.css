@@ -5,9 +5,9 @@
     height: 100vh;
     /* Full viewport height */
     padding: 0 10%;
-    background-color: #222;
     /* Adjust background color as needed */
     color: white;
+    background-color: #222;
 }
 
 .text-section {
