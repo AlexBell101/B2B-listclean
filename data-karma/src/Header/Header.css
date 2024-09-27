@@ -1,0 +1,76 @@
+.header {
+    position: fixed;
+    /* Sticks the header at the top */
+    top: 0;
+    left: 0;
+    width: 80%;
+    /* Full width */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #f5f5f5;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Adds a slight shadow for effect */
+    z-index: 1000;
+    /* Keeps it above other content */
+
+
+    display: flex;
+
+    color-scheme: light dark;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #242424;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Add some margin to the content below so it isn't hidden under the fixed header */
+body {
+    margin-top: 80px;
+    /* Adjust this based on header height */
+}
+
+.logo img {
+    height: 100px;
+}
+
+.nav {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-button {
+    padding: 10px 20px;
+    border: none;
+    background-color: #242424;
+    color: white;
+    cursor: pointer;
+    border-radius: 6px;
+    justify-content: flex;
+    gap: 10px;
+    flex-grow: 1;
+}
+
+.nav-button:hover {
+    filter: drop-shadow(0 0 2em #646cffaa);
+}
+
+/* Increase button spacing on larger screens */
+@media (min-width: 768px) {
+    .nav {
+        justify-content: space-between;
+        /* Spread buttons across the screen */
+    }
+
+    .nav-button {
+        flex-grow: 1;
+        text-align: center;
+        /* Center text within buttons */
+        max-width: 150px;
+        /* Prevent buttons from growing too much */
+    }
+}
