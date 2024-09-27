@@ -50,12 +50,35 @@ openai_key_loaded()
 # List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
-# Helper function for country code conversion
+import pycountry
+
+# Function to convert full country name to ISO 3166-1 alpha-2 code
 def country_to_code(country_name):
     try:
-        return pycountry.countries.lookup(country_name).alpha_2
+        country = pycountry.countries.lookup(country_name)
+        return country.alpha_2  # Converts full name to alpha-2 code (e.g., "United States" -> "US")
     except LookupError:
-        return country_name
+        return country_name  # If not found, return original input (could be a short code already or invalid)
+
+# Function to convert ISO 3166-1 alpha-2 code to full country name
+def code_to_country(country_code):
+    try:
+        # Ensure input is uppercase, as alpha_2 codes are case-sensitive
+        country = pycountry.countries.get(alpha_2=country_code.upper())
+        return country.name if country else country_code  # Converts "US" to "United States"
+    except LookupError:
+        return country_code  # If not found, return original input (could already be a full name or invalid)
+
+# Function to apply country format conversions to a DataFrame
+def convert_country(df, format_type="Long Form"):
+    if 'Country' in df.columns:
+        if format_type == "Country Code":
+            # Convert full country names to short codes
+            df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
+        elif format_type == "Long Form":
+            # Convert short codes to full country names
+            df['Country'] = df['Country'].apply(lambda x: code_to_country(x))
+    return df
 
 # Helper function for phone number cleaning
 def clean_phone(phone):
