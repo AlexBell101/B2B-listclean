@@ -227,7 +227,7 @@ def convert_country(df, format_type="Long Form"):
         elif format_type == "Long Form":
             # Convert short codes to full country names
             df['Country'] = df['Country'].apply(lambda x: code_to_country(x))
-    return df
+        return df
 
         if phone_cleanup and 'Phone' in df.columns:
             df['Phone'] = df['Phone'].apply(clean_phone)
