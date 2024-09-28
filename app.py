@@ -41,37 +41,13 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 # List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
-# Helper function to standardize country names (lowercase, strip extra spaces)
-def standardize_country_name(country_name):
-    return country_name.strip().lower()
-
-# Function to convert full country name to ISO 3166-1 alpha-2 code with improved matching
+# Helper function for country code conversion
 def country_to_code(country_name):
-    standardized_country_name = standardize_country_name(country_name)
-
-    # Check if the input is already a country code (e.g., "US", "DE")
-    if len(standardized_country_name) == 2:
-        try:
-            country = pycountry.countries.get(alpha_2=standardized_country_name.upper())
-            return country.alpha_2 if country else country_name
-        except LookupError:
-            return country_name
-
-    # Otherwise, look it up by full name
     try:
-        country = pycountry.countries.lookup(standardized_country_name)
-        return country.alpha_2  # Converts full name to alpha-2 code (e.g., "United States" -> "US")
+        return pycountry.countries.lookup(country_name).alpha_2
     except LookupError:
-        # If lookup fails, return the original input
         return country_name
 
-# Function to convert ISO 3166-1 alpha-2 code to full country name
-def code_to_country(country_code):
-    try:
-        country = pycountry.countries.get(alpha_2=country_code.upper())
-        return country.name if country else country_code  # Converts "US" to "United States"
-    except LookupError:
-        return country_code  # If not found, return original input (could already be a full name or invalid)
 # Helper function for phone number cleaning
 def clean_phone(phone):
     try:
@@ -219,15 +195,8 @@ if uploaded_file is not None:
         if normalize_names and 'Name' in df.columns:
             df['Name'] = df['Name'].str.title()
 
-def convert_country(df, format_type="Long Form"):
-    if 'Country' in df.columns:
-        if format_type == "Country Code":
-            # Convert full country names to short codes
+        if country_format == "Country Code" and 'Country' in df.columns:
             df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
-        elif format_type == "Long Form":
-            # Convert short codes to full country names
-            df['Country'] = df['Country'].apply(lambda x: code_to_country(x))
-        return df
 
         if phone_cleanup and 'Phone' in df.columns:
             df['Phone'] = df['Phone'].apply(clean_phone)
