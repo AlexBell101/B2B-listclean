@@ -219,7 +219,7 @@ if uploaded_file is not None:
         if normalize_names and 'Name' in df.columns:
             df['Name'] = df['Name'].str.title()
 
-        def convert_country(df, format_type="Long Form"):
+def convert_country(df, format_type="Long Form"):
     if 'Country' in df.columns:
         if format_type == "Country Code":
             # Convert full country names to short codes
