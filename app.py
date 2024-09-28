@@ -1,4 +1,3 @@
-import functools
 import openai
 import streamlit as st
 import pandas as pd
@@ -36,49 +35,18 @@ st.markdown(
 # Create a custom OpenAI API client
 client = openai
 
-@functools.cache
-def openai_key_loaded()->bool:
-    # Fetch the OpenAI API key from Streamlit secrets
-    try:
-        key = st.secrets["OPENAI_API_KEY"]
-        client.api_key = key
-    except (FileNotFoundError, KeyError):
-        key = None
-        st.toast("No OpenAI key Found, LLM funcationality will be disabled")
-openai_key_loaded()
+# Fetch the OpenAI API key from Streamlit secrets
+client.api_key = st.secrets["OPENAI_API_KEY"]
 
 # List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
-import pycountry
-
-# Function to convert full country name to ISO 3166-1 alpha-2 code
+# Helper function for country code conversion
 def country_to_code(country_name):
     try:
-        country = pycountry.countries.lookup(country_name)
-        return country.alpha_2  # Converts full name to alpha-2 code (e.g., "United States" -> "US")
+        return pycountry.countries.lookup(country_name).alpha_2
     except LookupError:
-        return country_name  # If not found, return original input (could be a short code already or invalid)
-
-# Function to convert ISO 3166-1 alpha-2 code to full country name
-def code_to_country(country_code):
-    try:
-        # Ensure input is uppercase, as alpha_2 codes are case-sensitive
-        country = pycountry.countries.get(alpha_2=country_code.upper())
-        return country.name if country else country_code  # Converts "US" to "United States"
-    except LookupError:
-        return country_code  # If not found, return original input (could already be a full name or invalid)
-
-# Function to apply country format conversions to a DataFrame
-def convert_country(df, format_type="Long Form"):
-    if 'Country' in df.columns:
-        if format_type == "Country Code":
-            # Convert full country names to short codes
-            df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
-        elif format_type == "Long Form":
-            # Convert short codes to full country names
-            df['Country'] = df['Country'].apply(lambda x: code_to_country(x))
-    return df
+        return country_name
 
 # Helper function for phone number cleaning
 def clean_phone(phone):
@@ -221,7 +189,7 @@ if uploaded_file is not None:
     split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
     status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-    custom_request = st.sidebar.text_area("Karmic AI Prompt") if open_ai_key() is not None else None
+    custom_request = st.sidebar.text_area("Karmic AI Prompt")
 
     if st.button("Clean the data"):
         if normalize_names and 'Name' in df.columns:
@@ -256,7 +224,7 @@ if uploaded_file is not None:
         if add_campaign:
             df['Campaign'] = campaign_value
 
-        if custom_request and open_ai_key() is not None:
+        if custom_request:
             df = generate_openai_response_and_apply(custom_request, df)
 
         st.write("### Data Preview (After Cleanup):")
