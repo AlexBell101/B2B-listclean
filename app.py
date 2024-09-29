@@ -104,7 +104,37 @@ def split_city_state(df):
         df['City'] = df['City'].str.strip()
         df['State'] = df['State'].str.strip()
     return df
+        
+# Function to extract and clean Python code from OpenAI's response
+def extract_python_code(response_text):
+    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
+    if code_block:
+        code = code_block.group(1).strip()
+        if code.startswith("python"):
+            code = code[len("python"):].strip()
+        code = re.sub(r'import.*', '', code)  # Remove import statements
+        code = re.sub(r'data\s*=.*', '', code)  # Remove data creation
+        code = re.sub(r'print\(.*\)', '', code)  # Remove print statements
+        open_braces = code.count('{')
+        close_braces = code.count('}')
+        if open_braces != close_braces:
+            code = re.sub(r'[{}]', '', code)  # Remove all curly braces if they are unbalanced
+        code_lines = code.split('\n')
+        code = "\n".join(line.lstrip() for line in code_lines)  # Strip leading indents
+        return code
+    else:
+        return response_text.strip()
 
+# Function to validate and replace 'data' with 'df'
+def clean_and_validate_code(python_code):
+    # Automatically replace 'data' with 'df' if necessary
+    python_code = python_code.replace("data", "df")
+
+    # Ensure the code references 'df' and does not contain problematic statements
+    if 'df' in python_code and 'import' not in python_code:
+        return python_code
+    return None
+        
 # Function to generate and apply OpenAI response
 def generate_openai_response_and_apply(prompt, df):
     try:
