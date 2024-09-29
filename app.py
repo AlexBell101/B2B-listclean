@@ -5,26 +5,6 @@ import phonenumbers
 from io import BytesIO
 import pycountry
 import re
-
-# Ensure this function is defined before calling it
-def extract_python_code(response_text):
-    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
-    if code_block:
-        code = code_block.group(1).strip()
-        if code.startswith("python"):
-            code = code[len("python"):].strip()
-        code = re.sub(r'import.*', '', code)
-        code = re.sub(r'data\s*=.*', '', code)
-        code = re.sub(r'print\(.*\)', '', code)
-        open_braces = code.count('{')
-        close_braces = code.count('}')
-        if open_braces != close_braces:
-            code = re.sub(r'[{}]', '', code)
-        code_lines = code.split('\n')
-        code = "\n".join(line.lstrip() for line in code_lines)
-        return code
-    else:
-        return response_text.strip()
         
 # Set the page config before any other Streamlit code
 st.set_page_config(page_title="List Karma", layout="centered")
