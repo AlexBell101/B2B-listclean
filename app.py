@@ -41,12 +41,28 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 # List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
-# Helper function for country code conversion
+# Helper function for country code conversion (Country Name to ISO Code)
 def country_to_code(country_name):
     try:
         return pycountry.countries.lookup(country_name).alpha_2
     except LookupError:
         return country_name
+
+# Helper function for ISO code to full country name conversion
+def code_to_country(country_code):
+    try:
+        return pycountry.countries.get(alpha_2=country_code).name
+    except LookupError:
+        return country_code
+
+# Function to convert country name to ISO code or vice versa based on format_type
+def convert_country(df, format_type="Long Form"):
+    if 'Country' in df.columns:
+        if format_type == "Country Code":
+            df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
+        elif format_type == "Long Form":
+            df['Country'] = df['Country'].apply(lambda x: code_to_country(x))
+    return df
 
 # Helper function for phone number cleaning
 def clean_phone(phone):
@@ -86,33 +102,6 @@ def split_city_state(df):
         df['City'] = df['City'].str.strip()
         df['State'] = df['State'].str.strip()
     return df
-
-# Function to extract and clean Python code from OpenAI's response
-def extract_python_code(response_text):
-    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
-    if code_block:
-        code = code_block.group(1).strip()
-        if code.startswith("python"):
-            code = code[len("python"):].strip()
-        code = re.sub(r'import.*', '', code)
-        code = re.sub(r'data\s*=.*', '', code)
-        code = re.sub(r'print\(.*\)', '', code)
-        open_braces = code.count('{')
-        close_braces = code.count('}')
-        if open_braces != close_braces:
-            code = re.sub(r'[{}]', '', code)
-        code_lines = code.split('\n')
-        code = "\n".join(line.lstrip() for line in code_lines)
-        return code
-    else:
-        return response_text.strip()
-
-# Function to validate and replace 'data' with 'df'
-def clean_and_validate_code(python_code):
-    python_code = python_code.replace("data", "df")
-    if 'df' in python_code and 'import' not in python_code:
-        return python_code
-    return None
 
 # Function to generate and apply OpenAI response
 def generate_openai_response_and_apply(prompt, df):
@@ -195,8 +184,8 @@ if uploaded_file is not None:
         if normalize_names and 'Name' in df.columns:
             df['Name'] = df['Name'].str.title()
 
-        if country_format == "Country Code" and 'Country' in df.columns:
-            df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
+        if 'Country' in df.columns:
+            df = convert_country(df, country_format)  # Apply country conversion based on the selected format
 
         if phone_cleanup and 'Phone' in df.columns:
             df['Phone'] = df['Phone'].apply(clean_phone)
@@ -234,7 +223,7 @@ if uploaded_file is not None:
             unique_status_values = df[status_column].unique()
             for status_value in unique_status_values:
                 status_df = df[df[status_column] == status_value]
-                st.write(f"#### Data for Status: {status_value}")
+                st.write(f"#### Data for Status {status_value}")
                 st.dataframe(status_df.head())
                 if output_format == 'CSV':
                     st.download_button(label=f"Download CSV for {status_value}",
