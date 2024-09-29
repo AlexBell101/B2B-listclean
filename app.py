@@ -59,9 +59,11 @@ def code_to_country(country_code):
 def convert_country(df, format_type="Long Form"):
     if 'Country' in df.columns:
         if format_type == "Country Code":
-            df['Country'] = df['Country'].apply(lambda x: country_to_code(x))
+            # Convert both full country names and codes to short codes
+            df['Country'] = df['Country'].apply(lambda x: country_to_code(x) if pd.notnull(x) else x)
         elif format_type == "Long Form":
-            df['Country'] = df['Country'].apply(lambda x: code_to_country(x))
+            # Convert both short codes and full country names to long form
+            df['Country'] = df['Country'].apply(lambda x: code_to_country(country_to_code(x)) if pd.notnull(x) else x)
     return df
 
 # Helper function for phone number cleaning
