@@ -5,11 +5,10 @@ import phonenumbers
 from io import BytesIO
 import pycountry
 import re
-        
+
 # Set the page config before any other Streamlit code
 st.set_page_config(page_title="List Karma", layout="centered")
 
-# Custom CSS to style the sidebar and select boxes
 # Custom CSS to force light or custom theme even when the user has dark mode enabled
 st.markdown(
     """
@@ -25,14 +24,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-# Create a custom OpenAI API client
-client = openai
-
-# Fetch the OpenAI API key from Streamlit secrets
-client.api_key = st.secrets["OPENAI_API_KEY"]
-
-# List of common personal email domains
-personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
 # Function to combine columns based on user selection with an option to retain original column titles
 def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings):
@@ -51,27 +42,6 @@ def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_h
 def rename_columns(df, new_names):
     df = df.rename(columns=new_names)
     return df
-
-# Other helper functions (country_to_code, code_to_country, clean_phone, etc.) would go here...
-
-# UI setup for the app
-st.title("📋 List Karma")
-st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot.")
-
-uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
-if uploaded_file is not None:
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
-        df = pd.read_excel(uploaded_file)
-    else:
-        df = pd.read_csv(uploaded_file, delimiter="\t")
-
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
-
-    # Sidebar options for combining columns
-    st.
 
 # Helper function for country code conversion (Country Name to ISO Code)
 def country_to_code(country_name):
@@ -236,13 +206,6 @@ if uploaded_file is not None:
         
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
-
-    # Combine columns functionality
-    df = combine_columns(df)
-
-    # Rename columns functionality
-    df = rename_columns(df)
-        
 
     # Sidebar options
     st.sidebar.title("Cleanup Options")
