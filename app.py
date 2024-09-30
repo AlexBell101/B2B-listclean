@@ -231,8 +231,6 @@ if uploaded_file is not None:
     split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
     status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-    custom_request = st.sidebar.text_area("Karmic AI Prompt")
-
     # Combine columns functionality
     columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
     delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
@@ -247,36 +245,53 @@ if uploaded_file is not None:
     if st.sidebar.button("Rename Selected Columns"):
         df = rename_columns(df, new_names)
 
-    if st.button("Clean the data"):
-        if normalize_names and 'Name' in df.columns:
-            df['Name'] = df['Name'].str.title()
+    custom_request = st.sidebar.text_area("Karmic AI Prompt")
 
-        if 'Country' in df.columns:
-            df = convert_country(df, country_format)  # Apply country conversion based on the selected format
+   if st.button("Clean the data"):
+    # Normalize names
+    if normalize_names and 'Name' in df.columns:
+        df['Name'] = df['Name'].str.title()
 
-        if phone_cleanup and 'Phone' in df.columns:
-            df['Phone'] = df['Phone'].apply(clean_phone)
+    # Convert country column based on selected format
+    if 'Country' in df.columns:
+        df = convert_country(df, country_format)
 
-        if extract_domain or classify_emails or remove_personal:
-            df = extract_email_domain(df)  # Ensure 'Domain' column is created
+    # Clean phone numbers
+    if phone_cleanup and 'Phone' in df.columns:
+        df['Phone'] = df['Phone'].apply(clean_phone)
 
-        if clean_address:
-            df = split_address_2(df)
-        if split_city_state_option:
-            df = split_city_state(df)
+    # Extract email domain and classify emails
+    if extract_domain or classify_emails or remove_personal:
+        df = extract_email_domain(df)
 
-        if add_lead_source:
-            df['Lead Source'] = lead_source_value
-        if add_lead_source_detail:
-            df['Lead Source Detail'] = lead_source_detail_value
-        if add_campaign:
-            df['Campaign'] = campaign_value
+    # Clean and split addresses
+    if clean_address:
+        df = split_address_2(df)
+    if split_city_state_option:
+        df = split_city_state(df)
 
-        if custom_request:
-            df = generate_openai_response_and_apply(custom_request, df)
+    # Add additional columns (Lead Source, Campaign, etc.)
+    if add_lead_source:
+        df['Lead Source'] = lead_source_value
+    if add_lead_source_detail:
+        df['Lead Source Detail'] = lead_source_detail_value
+    if add_campaign:
+        df['Campaign'] = campaign_value
 
-        st.write("### Data Preview (After Cleanup):")
-        st.dataframe(df.head())
+    # Apply OpenAI prompt custom transformation
+    if custom_request:
+        df = generate_openai_response_and_apply(custom_request, df)
+
+    # Apply combine columns functionality
+    if columns_to_combine:
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings)
+
+    # Apply rename columns functionality
+    if columns_to_rename:
+        df = rename_columns(df, new_names)
+
+    st.write("### Data Preview (After Cleanup):")
+    st.dataframe(df.head())
 
         if split_by_status and status_column:
             unique_status_values = df[status_column].unique()
