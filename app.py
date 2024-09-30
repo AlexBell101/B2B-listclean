@@ -133,6 +133,19 @@ def combine_columns(df):
             st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
 
     return df
+
+# Function to rename columns based on user input
+def rename_columns(df):
+    st.sidebar.markdown("### Rename Columns")
+    
+    # Loop over each column and ask the user if they want to rename it
+    for col in df.columns:
+        new_col_name = st.sidebar.text_input(f"Rename column '{col}'", value=col)
+        # If the new name is different from the old name, rename the column
+        if new_col_name != col:
+            df = df.rename(columns={col: new_col_name})
+    
+    return df
         
 # Function to extract and clean Python code from OpenAI's response
 def extract_python_code(response_text):
