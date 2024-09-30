@@ -25,6 +25,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# List of common personal email domains (make sure this is defined globally)
+personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
+
 # Function to combine columns based on user selection with an option to retain original column titles and remove original columns
 def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original):
     if columns_to_combine:
