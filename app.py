@@ -239,14 +239,14 @@ if uploaded_file is not None:
     else:
         df = pd.read_csv(uploaded_file, delimiter="\t")
         
-st.write("### Data Preview (Before Cleanup):")
-st.dataframe(df.head())
+    st.write("### Data Preview (Before Cleanup):")
+    st.dataframe(df.head())
 
-# Combine columns functionality
-df = combine_columns(df)
+    # Combine columns functionality
+    df = combine_columns(df)
 
-# Rename columns functionality
-df = rename_columns(df)
+    # Rename columns functionality
+    df = rename_columns(df)
         
 
     # Sidebar options
