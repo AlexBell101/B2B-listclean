@@ -34,6 +34,50 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 # List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
+# Function to combine columns based on user selection with an option to retain original column titles
+def combine_columns(df):
+    st.sidebar.markdown("### Combine Columns")
+
+    # Multiselect to choose columns to combine
+    columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
+
+    if columns_to_combine:
+        delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
+        new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
+        retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
+
+        if st.sidebar.button("Combine Selected Columns"):
+            # Combine the columns with or without retaining the original column names
+            if retain_headings:
+                df[new_column_name] = df[columns_to_combine].astype(str).apply(
+                    lambda row: delimiter.join([f"{col}: {value}" for col, value in zip(columns_to_combine, row.values)]),
+                    axis=1
+                )
+            else:
+                df[new_column_name] = df[columns_to_combine].astype(str).apply(
+                    lambda row: delimiter.join(row.values), axis=1)
+                
+            st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
+    return df
+
+# Function to rename columns based on user input
+def rename_columns(df):
+    st.sidebar.markdown("### Rename Columns")
+
+    # Multiselect to choose columns to rename
+    columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
+
+    if columns_to_rename:
+        new_names = {}
+        for col in columns_to_rename:
+            new_name = st.sidebar.text_input(f"New name for '{col}'", value=col)
+            new_names[col] = new_name
+
+        if st.sidebar.button("Rename Selected Columns"):
+            df = df.rename(columns=new_names)
+            st.success(f"Columns renamed successfully: {new_names}")
+    return df
+
 # Helper function for country code conversion (Country Name to ISO Code)
 def country_to_code(country_name):
     try:
@@ -194,9 +238,16 @@ if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
     else:
         df = pd.read_csv(uploaded_file, delimiter="\t")
+        
+st.write("### Data Preview (Before Cleanup):")
+st.dataframe(df.head())
 
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
+# Combine columns functionality
+df = combine_columns(df)
+
+# Rename columns functionality
+df = rename_columns(df)
+        
 
     # Sidebar options
     st.sidebar.title("Cleanup Options")
