@@ -40,6 +40,17 @@ def code_to_country(country_code):
     except LookupError:
         return country_code
 
+# Function to convert country name to ISO code or vice versa based on format_type
+def convert_country(df, format_type="Long Form"):
+    if 'Country' in df.columns:
+        if format_type == "Country Code":
+            # Convert both full country names and codes to short codes
+            df['Country'] = df['Country'].apply(lambda x: country_to_code(x) if pd.notnull(x) else x)
+        elif format_type == "Long Form":
+            # Convert both short codes and full country names to long form
+            df['Country'] = df['Country'].apply(lambda x: code_to_country(country_to_code(x)) if pd.notnull(x) else x)
+    return df
+
 # Function to combine columns based on user selection with an option to retain original column titles
 def combine_columns(df):
     st.sidebar.markdown("### Combine Columns")
