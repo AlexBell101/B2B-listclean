@@ -21,22 +21,6 @@ st.markdown(
         font-family: 'Roboto', sans-serif;
     }
 
-    /* Change the background color of the sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #6721F0; /* Example sidebar background color */
-    }
-
-    /* Change the text color and font of sidebar components */
-    [data-testid="stSidebar"] * {
-        color: white;
-        font-family: 'Roboto', sans-serif;
-    }
-
-    /* Style for buttons and other elements */
-    .stButton button {
-        background-color: #6721F0;  /* Purple button */
-        color: white;  /* White text */
-    }
     </style>
     """,
     unsafe_allow_html=True
