@@ -311,41 +311,42 @@ if st.button("Clean the data"):
     st.dataframe(df.head())
 
 if split_by_status and status_column:
-            unique_status_values = df[status_column].unique()
-            for status_value in unique_status_values:
-                status_df = df[df[status_column] == status_value]
-                st.write(f"#### Data for Status {status_value}")
-                st.dataframe(status_df.head())
-                if output_format == 'CSV':
-                    st.download_button(label=f"Download CSV for {status_value}",
-                                       data=status_df.to_csv(index=False),
-                                       file_name=f"cleaned_data_{status_value}.csv",
-                                       mime="text/csv")
-                elif output_format == 'Excel':
-                    output = BytesIO()
-                    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                    status_df.to_excel(writer, index=False)
-                    writer.save()
-                    st.download_button(label=f"Download Excel for {status_value}",
-                                       data=output.getvalue(),
-                                       file_name=f"cleaned_data_{status_value}.xlsx",
-                                       mime="application/vnd.ms-excel")
-                elif output_format == 'TXT':
-                    st.download_button(label=f"Download TXT for {status_value}",
-                                       data=status_df.to_csv(index=False, sep="\t"),
-                                       file_name=f"cleaned_data_{status_value}.txt",
-                                       mime="text/plain")
-    else:
+    unique_status_values = df[status_column].unique()
+    for status_value in unique_status_values:
+        status_df = df[df[status_column] == status_value]
+        st.write(f"#### Data for Status {status_value}")
+        st.dataframe(status_df.head())
+        
         if output_format == 'CSV':
-            st.download_button(label="Download CSV", data=df.to_csv(index=False),
-                               file_name="cleaned_data.csv", mime="text/csv")
+            st.download_button(label=f"Download CSV for {status_value}",
+                               data=status_df.to_csv(index=False),
+                               file_name=f"cleaned_data_{status_value}.csv",
+                               mime="text/csv")
         elif output_format == 'Excel':
             output = BytesIO()
             writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            df.to_excel(writer, index=False)
+            status_df.to_excel(writer, index=False)
             writer.save()
-            st.download_button(label="Download Excel", data=output.getvalue(),
-                               file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
+            st.download_button(label=f"Download Excel for {status_value}",
+                               data=output.getvalue(),
+                               file_name=f"cleaned_data_{status_value}.xlsx",
+                               mime="application/vnd.ms-excel")
         elif output_format == 'TXT':
-            st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
-                               file_name="cleaned_data.txt", mime="text/plain")
+            st.download_button(label=f"Download TXT for {status_value}",
+                               data=status_df.to_csv(index=False, sep="\t"),
+                               file_name=f"cleaned_data_{status_value}.txt",
+                               mime="text/plain")
+else:
+    if output_format == 'CSV':
+        st.download_button(label="Download CSV", data=df.to_csv(index=False),
+                           file_name="cleaned_data.csv", mime="text/csv")
+    elif output_format == 'Excel':
+        output = BytesIO()
+        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        df.to_excel(writer, index=False)
+        writer.save()
+        st.download_button(label="Download Excel", data=output.getvalue(),
+                           file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
+    elif output_format == 'TXT':
+        st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
+                           file_name="cleaned_data.txt", mime="text/plain")
