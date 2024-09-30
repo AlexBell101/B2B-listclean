@@ -310,13 +310,23 @@ if st.button("Clean the data"):
 
     st.dataframe(df.head())
 
+# Sidebar options for splitting by status
+split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
+
+# Check if the user has selected to split by status and ensure the column exists
+if split_by_status:
+    status_column = st.sidebar.selectbox("Select Status Column", df.columns)
+else:
+    status_column = None
+
+# Now use the variables safely in your logic
 if split_by_status and status_column:
     unique_status_values = df[status_column].unique()
     for status_value in unique_status_values:
         status_df = df[df[status_column] == status_value]
         st.write(f"#### Data for Status {status_value}")
         st.dataframe(status_df.head())
-        
+
         if output_format == 'CSV':
             st.download_button(label=f"Download CSV for {status_value}",
                                data=status_df.to_csv(index=False),
@@ -337,6 +347,7 @@ if split_by_status and status_column:
                                file_name=f"cleaned_data_{status_value}.txt",
                                mime="text/plain")
 else:
+    # Fallback if not splitting by status
     if output_format == 'CSV':
         st.download_button(label="Download CSV", data=df.to_csv(index=False),
                            file_name="cleaned_data.csv", mime="text/csv")
