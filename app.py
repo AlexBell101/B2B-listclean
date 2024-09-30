@@ -97,52 +97,6 @@ def split_city_state(df):
         df['City'] = df['City'].str.strip()
         df['State'] = df['State'].str.strip()
     return df
-
-# Function to combine columns based on user selection with an option to retain original column titles
-def combine_columns(df):
-    st.sidebar.markdown("### Combine Columns")
-
-    # Multiselect to choose columns to combine
-    columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
-    
-    if columns_to_combine:
-        delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
-        new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
-        retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
-
-        if st.sidebar.button("Combine Selected Columns"):
-            # Combine the columns with or without retaining the original column names
-            if retain_headings:
-                df[new_column_name] = df[columns_to_combine].astype(str).apply(
-                    lambda row: delimiter.join([f"{col} {value}" for col, value in zip(columns_to_combine, row.values)]),
-                    axis=1
-                )
-            else:
-                df[new_column_name] = df[columns_to_combine].astype(str).apply(
-                    lambda row: delimiter.join(row.values), axis=1)
-                
-            st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
-
-    return df
-
-# Add this function to the section where your helper functions are, like `combine_columns` and others
-def rename_columns(df):
-    st.sidebar.markdown("### Rename Columns")
-
-    # Multiselect to choose columns to rename
-    columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
-    
-    if columns_to_rename:
-        new_names = {}
-        for col in columns_to_rename:
-            new_name = st.sidebar.text_input(f"New name for '{col}'", value=col)
-            new_names[col] = new_name
-
-        if st.sidebar.button("Rename Selected Columns"):
-            df = df.rename(columns=new_names)
-            st.success(f"Columns renamed successfully: {new_names}")
-
-    return df
         
 # Function to extract and clean Python code from OpenAI's response
 def extract_python_code(response_text):
@@ -268,96 +222,75 @@ if uploaded_file is not None:
     split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
     status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
+    custom_request = st.sidebar.text_area("Karmic AI Prompt")
 
-    # Combine columns (already in your code)
-    df = combine_columns(df)
+    if st.button("Clean the data"):
+        if normalize_names and 'Name' in df.columns:
+            df['Name'] = df['Name'].str.title()
 
-    # Add the rename columns option (put this here)
-    df = rename_columns(df)
+        if 'Country' in df.columns:
+            df = convert_country(df, country_format)  # Apply country conversion based on the selected format
 
+        if phone_cleanup and 'Phone' in df.columns:
+            df['Phone'] = df['Phone'].apply(clean_phone)
+  
+        if extract_domain or classify_emails or remove_personal:
+            df = extract_email_domain(df)  # Ensure 'Domain' column is created
 
-custom_request = st.sidebar.text_area("Karmic AI Prompt")
+        if clean_address:
+            df = split_address_2(df)
+        if split_city_state_option:
+            df = split_city_state(df)
 
-if st.button("Clean the data"):
-    if normalize_names and 'Name' in df.columns:
-        df['Name'] = df['Name'].str.title()
+        if add_lead_source:
+            df['Lead Source'] = lead_source_value
+        if add_lead_source_detail:
+            df['Lead Source Detail'] = lead_source_detail_value
+        if add_campaign:
+            df['Campaign'] = campaign_value
 
-    if 'Country' in df.columns:
-        df = convert_country(df, country_format)  # Apply country conversion based on the selected format
+        if custom_request:
+            df = generate_openai_response_and_apply(custom_request, df)
 
-    if phone_cleanup and 'Phone' in df.columns:
-        df['Phone'] = df['Phone'].apply(clean_phone)
+        st.write("### Data Preview (After Cleanup):")
+        st.dataframe(df.head())
 
-    if extract_domain or classify_emails or remove_personal:
-        df = extract_email_domain(df)  # Ensure 'Domain' column is created
-
-    if clean_address:
-        df = split_address_2(df)
-    if split_city_state_option:
-        df = split_city_state(df)
-
-    if add_lead_source:
-        df['Lead Source'] = lead_source_value
-    if add_lead_source_detail:
-        df['Lead Source Detail'] = lead_source_detail_value
-    if add_campaign:
-        df['Campaign'] = campaign_value
-
-    if custom_request:
-        df = generate_openai_response_and_apply(custom_request, df)
-
-    st.dataframe(df.head())
-
-# Sidebar options for splitting by status
-split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
-
-# Check if the user has selected to split by status and ensure the column exists
-if split_by_status:
-    status_column = st.sidebar.selectbox("Select Status Column", df.columns)
-else:
-    status_column = None
-
-# Now use the variables safely in your logic
-if split_by_status and status_column:
-    unique_status_values = df[status_column].unique()
-    for status_value in unique_status_values:
-        status_df = df[df[status_column] == status_value]
-        st.write(f"#### Data for Status {status_value}")
-        st.dataframe(status_df.head())
-
-        if output_format == 'CSV':
-            st.download_button(label=f"Download CSV for {status_value}",
-                               data=status_df.to_csv(index=False),
-                               file_name=f"cleaned_data_{status_value}.csv",
-                               mime="text/csv")
-        elif output_format == 'Excel':
-            output = BytesIO()
-            writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            status_df.to_excel(writer, index=False)
-            writer.save()
-            st.download_button(label=f"Download Excel for {status_value}",
-                               data=output.getvalue(),
-                               file_name=f"cleaned_data_{status_value}.xlsx",
-                               mime="application/vnd.ms-excel")
-        elif output_format == 'TXT':
-            st.download_button(label=f"Download TXT for {status_value}",
-                               data=status_df.to_csv(index=False, sep="\t"),
-                               file_name=f"cleaned_data_{status_value}.txt",
-                               mime="text/plain")
-else:
-    # Fallback if not splitting by status
-    if output_format == 'CSV':
-        st.download_button(label="Download CSV", data=df.to_csv(index=False),
-                           file_name="cleaned_data.csv", mime="text/csv")
-    elif output_format == 'Excel':
-        output = BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        df.to_excel(writer, index=False)
-        writer.save()
-        st.download_button(label="Download Excel", data=output.getvalue(),
-                           file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
-    elif output_format == 'TXT':
-        st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
-                           file_name="cleaned_data.txt", mime="text/plain")
+        if split_by_status and status_column:
+            unique_status_values = df[status_column].unique()
+            for status_value in unique_status_values:
+                status_df = df[df[status_column] == status_value]
+                st.write(f"#### Data for Status {status_value}")
+                st.dataframe(status_df.head())
+                if output_format == 'CSV':
+                    st.download_button(label=f"Download CSV for {status_value}",
+                                       data=status_df.to_csv(index=False),
+                                       file_name=f"cleaned_data_{status_value}.csv",
+                                       mime="text/csv")
+                elif output_format == 'Excel':
+                    output = BytesIO()
+                    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                    status_df.to_excel(writer, index=False)
+                    writer.save()
+                    st.download_button(label=f"Download Excel for {status_value}",
+                                       data=output.getvalue(),
+                                       file_name=f"cleaned_data_{status_value}.xlsx",
+                                       mime="application/vnd.ms-excel")
+                elif output_format == 'TXT':
+                    st.download_button(label=f"Download TXT for {status_value}",
+                                       data=status_df.to_csv(index=False, sep="\t"),
+                                       file_name=f"cleaned_data_{status_value}.txt",
+                                       mime="text/plain")
+        else:
+            if output_format == 'CSV':
+                st.download_button(label="Download CSV", data=df.to_csv(index=False),
+                                   file_name="cleaned_data.csv", mime="text/csv")
+            elif output_format == 'Excel':
+                output = BytesIO()
+                writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                df.to_excel(writer, index=False)
+                writer.save()
+                st.download_button(label="Download Excel", data=output.getvalue(),
+                                   file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
+            elif output_format == 'TXT':
+                st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
+                                   file_name="cleaned_data.txt", mime="text/plain")
