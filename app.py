@@ -88,10 +88,13 @@ def rename_columns(df):
 
 # UI setup for the app
 st.title("📋 List Karma")
-st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot.")
+st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot. Use the Karmic AI Prompt if you need a specific transformation applied to your file.")
 
+# File upload logic
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
+
 if uploaded_file is not None:
+    # File has been uploaded, now we can process it
     if uploaded_file.name.endswith('.csv'):
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith(('.xls', '.xlsx')):
@@ -109,15 +112,20 @@ if uploaded_file is not None:
     phone_cleanup = st.sidebar.checkbox("Standardize phone numbers?")
     normalize_names = st.sidebar.checkbox("Capitalize first letter of names?")
     extract_domain = st.sidebar.checkbox("Extract email domain?")
-    
     classify_emails = st.sidebar.checkbox("Classify emails as Personal or Business?")
     remove_personal = st.sidebar.checkbox("Remove rows with Personal emails?")
     clean_address = st.sidebar.checkbox("Clean up and separate Address fields?")
     split_city_state_option = st.sidebar.checkbox("Split combined City and State fields?")
 
-    # Add the combine columns and rename columns features
-    df = combine_columns(df)
-    df = rename_columns(df)
+    add_lead_source = st.sidebar.checkbox("Add 'Lead Source' field?")
+    lead_source_value = st.sidebar.text_input("Lead Source Value") if add_lead_source else None
+    add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
+    lead_source_detail_value = st.sidebar.text_input("Lead Source Detail Value") if add_lead_source_detail else None
+    add_campaign = st.sidebar.checkbox("Add 'Campaign' field?")
+    campaign_value = st.sidebar.text_input("Campaign Value") if add_campaign else None
+
+    split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
+    status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
     custom_request = st.sidebar.text_area("Karmic AI Prompt")
 
@@ -125,12 +133,13 @@ if uploaded_file is not None:
         if normalize_names and 'Name' in df.columns:
             df['Name'] = df['Name'].str.title()
 
+        # Check if 'Country' column exists before converting it
         if 'Country' in df.columns:
             df = convert_country(df, country_format)  # Apply country conversion based on the selected format
 
         if phone_cleanup and 'Phone' in df.columns:
             df['Phone'] = df['Phone'].apply(clean_phone)
-  
+
         if extract_domain or classify_emails or remove_personal:
             df = extract_email_domain(df)  # Ensure 'Domain' column is created
 
@@ -139,17 +148,55 @@ if uploaded_file is not None:
         if split_city_state_option:
             df = split_city_state(df)
 
+        if add_lead_source:
+            df['Lead Source'] = lead_source_value
+        if add_lead_source_detail:
+            df['Lead Source Detail'] = lead_source_detail_value
+        if add_campaign:
+            df['Campaign'] = campaign_value
+
+        if custom_request:
+            df = generate_openai_response_and_apply(custom_request, df)
+
         st.write("### Data Preview (After Cleanup):")
         st.dataframe(df.head())
 
-        # Download options
-        if output_format == 'CSV':
-            st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name="cleaned_data.csv", mime="text/csv")
-        elif output_format == 'Excel':
-            output = BytesIO()
-            writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            df.to_excel(writer, index=False)
-            writer.save()
-            st.download_button(label="Download Excel", data=output.getvalue(), file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
-        elif output_format == 'TXT':
-            st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name="cleaned_data.txt", mime="text/plain")
+        if split_by_status and status_column:
+            unique_status_values = df[status_column].unique()
+            for status_value in unique_status_values:
+                status_df = df[df[status_column] == status_value]
+                st.write(f"#### Data for Status {status_value}")
+                st.dataframe(status_df.head())
+                if output_format == 'CSV':
+                    st.download_button(label=f"Download CSV for {status_value}",
+                                       data=status_df.to_csv(index=False),
+                                       file_name=f"cleaned_data_{status_value}.csv",
+                                       mime="text/csv")
+                elif output_format == 'Excel':
+                    output = BytesIO()
+                    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                    status_df.to_excel(writer, index=False)
+                    writer.save()
+                    st.download_button(label=f"Download Excel for {status_value}",
+                                       data=output.getvalue(),
+                                       file_name=f"cleaned_data_{status_value}.xlsx",
+                                       mime="application/vnd.ms-excel")
+                elif output_format == 'TXT':
+                    st.download_button(label=f"Download TXT for {status_value}",
+                                       data=status_df.to_csv(index=False, sep="\t"),
+                                       file_name=f"cleaned_data_{status_value}.txt",
+                                       mime="text/plain")
+        else:
+            if output_format == 'CSV':
+                st.download_button(label="Download CSV", data=df.to_csv(index=False),
+                                   file_name="cleaned_data.csv", mime="text/csv")
+            elif output_format == 'Excel':
+                output = BytesIO()
+                writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                df.to_excel(writer, index=False)
+                writer.save()
+                st.download_button(label="Download Excel", data=output.getvalue(),
+                                   file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
+            elif output_format == 'TXT':
+                st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
+                                   file_name="cleaned_data.txt", mime="text/plain")
