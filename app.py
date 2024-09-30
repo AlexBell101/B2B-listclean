@@ -90,13 +90,13 @@ def extract_email_domain(df):
     return df
 
 # Function to classify email type as 'Personal' or 'Business'
-def classify_email_type(df):
-    if 'Email' in df.columns:
+def classify_email_type(df, personal_domains):
+    if 'Domain' in df.columns:
         df['Email Type'] = df['Domain'].apply(lambda domain: 'Personal' if domain in personal_domains else 'Business')
     return df
 
 # Function to remove rows with personal emails
-def remove_personal_emails(df):
+def remove_personal_emails(df, personal_domains):
     return df[df['Domain'].apply(lambda domain: domain not in personal_domains)]
 
 # Function to separate Address 2 from Address 1
@@ -269,8 +269,14 @@ if st.button("Clean the data"):
     if phone_cleanup and 'Phone' in df.columns:
         df['Phone'] = df['Phone'].apply(clean_phone)
 
-    if extract_domain or classify_emails or remove_personal:
+    if extract_domain:
         df = extract_email_domain(df)  # Ensure 'Domain' column is created
+
+    if classify_emails:
+        df = classify_email_type(df, personal_domains)
+
+    if remove_personal:
+        df = remove_personal_emails(df, personal_domains)
 
     # Clean and split addresses
     if clean_address:
