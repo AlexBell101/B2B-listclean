@@ -123,8 +123,7 @@ def combine_columns(df):
                 
             st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
 
-    return df​
-
+    return df
 
 # Add this function to the section where your helper functions are, like `combine_columns` and others
 def rename_columns(df):
