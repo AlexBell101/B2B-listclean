@@ -10,28 +10,37 @@ import re
 st.set_page_config(page_title="List Karma", layout="centered")
 
 # Custom CSS to style the sidebar and select boxes
+# Custom CSS to force light or custom theme even when the user has dark mode enabled
 st.markdown(
     """
     <style>
+    /* Force light mode or custom theme for both light and dark mode users */
+    html, body, [class*="css"]  {
+        background-color: #FFFFFF;  /* White background */
+        color: #000000;  /* Black text */
+        font-family: 'Roboto', sans-serif;
+    }
 
-    /* Change the font color and style of sidebar components */
+    /* Change the background color of the sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #6721F0; /* Example sidebar background color */
+    }
+
+    /* Change the text color and font of sidebar components */
     [data-testid="stSidebar"] * {
         color: white;
         font-family: 'Roboto', sans-serif;
     }
 
-    /* Set font to Roboto for the entire app */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
-
-    html, body, [class*="css"]  {
-        font-family: 'Roboto', sans-serif;
+    /* Style for buttons and other elements */
+    .stButton button {
+        background-color: #6721F0;  /* Purple button */
+        color: white;  /* White text */
     }
-
     </style>
     """,
     unsafe_allow_html=True
 )
-
 # Create a custom OpenAI API client
 client = openai
 
