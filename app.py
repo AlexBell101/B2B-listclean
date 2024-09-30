@@ -293,7 +293,7 @@ if st.button("Clean the data"):
 
     # Apply combine columns functionality
     if columns_to_combine:
-        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings)
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
 
     # Apply rename columns functionality
     if columns_to_rename:
