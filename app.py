@@ -269,9 +269,17 @@ if st.button("Clean the data"):
     if phone_cleanup and 'Phone' in df.columns:
         df['Phone'] = df['Phone'].apply(clean_phone)
 
-    # Extract email domain and classify emails
+      # Extract email domain and classify emails
     if extract_domain or classify_emails or remove_personal:
         df = extract_email_domain(df)
+        
+        # Classify emails as Personal or Business
+        if classify_emails:
+            df = classify_email_type(df)
+
+        # Remove personal emails if selected
+        if remove_personal:
+            df = remove_personal_emails(df)
 
     # Clean and split addresses
     if clean_address:
