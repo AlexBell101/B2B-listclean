@@ -233,6 +233,20 @@ if uploaded_file is not None:
 
     custom_request = st.sidebar.text_area("Karmic AI Prompt")
 
+    # Combine columns functionality
+    columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
+    delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
+    new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
+    retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
+    if st.sidebar.button("Combine Selected Columns"):
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings)
+
+    # Rename columns functionality
+    columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
+    new_names = {col: st.sidebar.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
+    if st.sidebar.button("Rename Selected Columns"):
+        df = rename_columns(df, new_names)
+
     if st.button("Clean the data"):
         if normalize_names and 'Name' in df.columns:
             df['Name'] = df['Name'].str.title()
@@ -242,7 +256,7 @@ if uploaded_file is not None:
 
         if phone_cleanup and 'Phone' in df.columns:
             df['Phone'] = df['Phone'].apply(clean_phone)
-  
+
         if extract_domain or classify_emails or remove_personal:
             df = extract_email_domain(df)  # Ensure 'Domain' column is created
 
