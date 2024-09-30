@@ -331,10 +331,10 @@ if split_by_status and status_column:
                                        file_name=f"cleaned_data_{status_value}.xlsx",
                                        mime="application/vnd.ms-excel")
                 elif output_format == 'TXT':
-            st.download_button(label=f"Download TXT for {status_value}",
-                               data=status_df.to_csv(index=False, sep="\t"),
-                               file_name=f"cleaned_data_{status_value}.txt",
-                               mime="text/plain")
+                    st.download_button(label=f"Download TXT for {status_value}",
+                                       data=status_df.to_csv(index=False, sep="\t"),
+                                       file_name=f"cleaned_data_{status_value}.txt",
+                                       mime="text/plain")
     else:
         if output_format == 'CSV':
             st.download_button(label="Download CSV", data=df.to_csv(index=False),
