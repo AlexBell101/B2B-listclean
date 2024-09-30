@@ -25,8 +25,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Function to combine columns based on user selection with an option to retain original column titles
-def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings):
+# Function to combine columns based on user selection with an option to retain original column titles and remove original columns
+def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original):
     if columns_to_combine:
         if retain_headings:
             df[new_column_name] = df[columns_to_combine].astype(str).apply(
@@ -36,6 +36,13 @@ def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_h
         else:
             df[new_column_name] = df[columns_to_combine].astype(str).apply(
                 lambda row: delimiter.join(row.values), axis=1)
+
+        # Remove original columns if the user chooses to do so
+        if remove_original:
+            df = df.drop(columns=columns_to_combine)
+
+        st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
+    
     return df
 
 # Function to rename columns based on user input
@@ -231,13 +238,15 @@ if uploaded_file is not None:
     split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
     status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-    # Combine columns functionality
+        # Combine columns functionality
     columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
     delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
     new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
     retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
+    remove_original = st.sidebar.checkbox("Remove original columns after combining?")  # New option
+
     if st.sidebar.button("Combine Selected Columns"):
-        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings)
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)  # Pass the new option
 
     # Rename columns functionality
     columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
