@@ -330,7 +330,7 @@ if split_by_status and status_column:
                                        data=output.getvalue(),
                                        file_name=f"cleaned_data_{status_value}.xlsx",
                                        mime="application/vnd.ms-excel")
-                       elif output_format == 'TXT':
+                elif output_format == 'TXT':
             st.download_button(label=f"Download TXT for {status_value}",
                                data=status_df.to_csv(index=False, sep="\t"),
                                file_name=f"cleaned_data_{status_value}.txt",
