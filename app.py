@@ -247,7 +247,7 @@ if uploaded_file is not None:
 
     custom_request = st.sidebar.text_area("Karmic AI Prompt")
 
-    if st.button("Clean the data"):
+if st.button("Clean the data"):
     # Normalize names
     if normalize_names and 'Name' in df.columns:
         df['Name'] = df['Name'].str.title()
