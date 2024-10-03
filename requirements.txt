@@ -4,3 +4,4 @@ openai
 phonenumbers
 pycountry
 openpyxl
+streamlit-cookies-manager
