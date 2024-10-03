@@ -68,45 +68,65 @@ if uploaded_file is not None:
     # Display uploaded data preview
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
+
+    # Sidebar options (loaded from cookies or default config)
+    st.sidebar.title("Cleanup Options")
+    output_format = st.sidebar.radio("Select output format", ('CSV', 'Excel', 'TXT'), index=['CSV', 'Excel', 'TXT'].index(config['output_format']))
+    country_format = st.sidebar.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"], index=["Leave As-Is", "Long Form", "Country Code"].index(config['country_format']))
+    phone_cleanup = st.sidebar.checkbox("Standardize phone numbers?", value=config['phone_cleanup'])
+    extract_domain = st.sidebar.checkbox("Extract email domain?", value=config['extract_domain'])
+    normalize_names = st.sidebar.checkbox("Capitalize first letter of names?")
     
-# Sidebar options (loaded from cookies or default config)
-st.sidebar.title("Cleanup Options")
-output_format = st.sidebar.radio("Select output format", ('CSV', 'Excel', 'TXT'), index=['CSV', 'Excel', 'TXT'].index(config['output_format']))
-country_format = st.sidebar.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"], index=["Leave As-Is", "Long Form", "Country Code"].index(config['country_format']))
-phone_cleanup = st.sidebar.checkbox("Standardize phone numbers?", value=config['phone_cleanup'])
-extract_domain = st.sidebar.checkbox("Extract email domain?", value=config['extract_domain'])
-normalize_names = st.sidebar.checkbox("Capitalize first letter of names?")
+    # Combine columns functionality
+    columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
+    delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
+    new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
+    retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
+    remove_original = st.sidebar.checkbox("Remove original columns after combining?")
+    
+    if st.sidebar.button("Combine Selected Columns"):
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
 
-# Additional options
-classify_emails = st.sidebar.checkbox("Classify emails as Personal or Business?")
-remove_personal = st.sidebar.checkbox("Remove rows with Personal emails?")
-clean_address = st.sidebar.checkbox("Clean up and separate Address fields?")
-split_city_state_option = st.sidebar.checkbox("Split combined City and State fields?")
-add_lead_source = st.sidebar.checkbox("Add 'Lead Source' field?")
-lead_source_value = st.sidebar.text_input("Lead Source Value") if add_lead_source else None
-add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
-lead_source_detail_value = st.sidebar.text_input("Lead Source Detail Value") if add_lead_source_detail else None
-add_campaign = st.sidebar.checkbox("Add 'Campaign' field?")
-campaign_value = st.sidebar.text_input("Campaign Value") if add_campaign else None
-split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
-status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
+    # Rename columns functionality
+    columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
+    new_names = {col: st.sidebar.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
+    
+    if st.sidebar.button("Rename Selected Columns"):
+        df = rename_columns(df, new_names)
 
-# Input for custom file name
-custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
+    # Additional options
+    classify_emails = st.sidebar.checkbox("Classify emails as Personal or Business?")
+    remove_personal = st.sidebar.checkbox("Remove rows with Personal emails?")
+    clean_address = st.sidebar.checkbox("Clean up and separate Address fields?")
+    split_city_state_option = st.sidebar.checkbox("Split combined City and State fields?")
+    add_lead_source = st.sidebar.checkbox("Add 'Lead Source' field?")
+    lead_source_value = st.sidebar.text_input("Lead Source Value") if add_lead_source else None
+    add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
+    lead_source_detail_value = st.sidebar.text_input("Lead Source Detail Value") if add_lead_source_detail else None
+    add_campaign = st.sidebar.checkbox("Add 'Campaign' field?")
+    campaign_value = st.sidebar.text_input("Campaign Value") if add_campaign else None
+    split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
+    status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
+    
+    # Input for custom file name
+    custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
+    
+    # Save configuration button
+    if st.sidebar.button("Save Configuration"):
+        config = {
+            "output_format": output_format,
+            "country_format": country_format,
+            "phone_cleanup": phone_cleanup,
+            "extract_domain": extract_domain,
+        }
+        save_configuration_to_cookie(config)
+        st.success("Configuration saved to cookies!")
 
-# Save configuration button
-if st.sidebar.button("Save Configuration"):
-    config = {
-        "output_format": output_format,
-        "country_format": country_format,
-        "phone_cleanup": phone_cleanup,
-        "extract_domain": extract_domain,
-    }
-    save_configuration_to_cookie(config)
-    st.success("Configuration saved to cookies!")
-
-# List of common personal email domains
-personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
+# Function to rename columns
+def rename_columns(df, new_names):
+    df = df.rename(columns=new_names)
+    st.success("Columns renamed successfully")
+    return df
 
 # Function to combine columns
 def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original):
@@ -126,6 +146,7 @@ def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_h
         st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
     
     return df
+
 
 # Functions for phone, address, and country transformations
 def clean_phone(phone):
