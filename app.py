@@ -259,8 +259,8 @@ if uploaded_file is not None:
 
     custom_request = st.sidebar.text_area("Karmic AI Prompt")
    
-    # Sidebar input for file name
-    file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
+# Sidebar input for file name
+file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
 
 if st.button("Clean the data"):
     # Normalize names
