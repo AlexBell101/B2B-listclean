@@ -219,6 +219,9 @@ if uploaded_file is not None:
 
     # Sidebar options
     st.sidebar.title("Cleanup Options")
+    # Sidebar input for file name
+    file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
+   
     output_format = st.sidebar.radio("Select output format", ('CSV', 'Excel', 'TXT'))
     country_format = st.sidebar.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
     phone_cleanup = st.sidebar.checkbox("Standardize phone numbers?")
@@ -259,9 +262,6 @@ if uploaded_file is not None:
 
     custom_request = st.sidebar.text_area("Karmic AI Prompt")
     
-    # Sidebar input for file name
-    file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
-   
 if st.button("Clean the data"):
     # Normalize names
     if normalize_names and 'Name' in df.columns:
