@@ -217,71 +217,48 @@ if uploaded_file is not None:
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
 
-# Sidebar options
-st.sidebar.title("Cleanup Options")
+    # Sidebar options
+    st.sidebar.title("Cleanup Options")
+    output_format = st.sidebar.radio("Select output format", ('CSV', 'Excel', 'TXT'))
+    country_format = st.sidebar.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
+    phone_cleanup = st.sidebar.checkbox("Standardize phone numbers?")
+    normalize_names = st.sidebar.checkbox("Capitalize first letter of names?")
+    extract_domain = st.sidebar.checkbox("Extract email domain?")
+    
+    classify_emails = st.sidebar.checkbox("Classify emails as Personal or Business?")
+    remove_personal = st.sidebar.checkbox("Remove rows with Personal emails?")
 
-# Output format selection
-output_format = st.sidebar.radio("Select output format", ('CSV', 'Excel', 'TXT'))
+    clean_address = st.sidebar.checkbox("Clean up and separate Address fields?")
+    split_city_state_option = st.sidebar.checkbox("Split combined City and State fields?")
 
-# Country format selection
-country_format = st.sidebar.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
+    add_lead_source = st.sidebar.checkbox("Add 'Lead Source' field?")
+    lead_source_value = st.sidebar.text_input("Lead Source Value") if add_lead_source else None
+    add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
+    lead_source_detail_value = st.sidebar.text_input("Lead Source Detail Value") if add_lead_source_detail else None
+    add_campaign = st.sidebar.checkbox("Add 'Campaign' field?")
+    campaign_value = st.sidebar.text_input("Campaign Value") if add_campaign else None
 
-# Phone cleanup
-phone_cleanup = st.sidebar.checkbox("Standardize phone numbers?")
+    split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
+    status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-# Normalize names
-normalize_names = st.sidebar.checkbox("Capitalize first letter of names?")
+        # Combine columns functionality
+    columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
+    delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
+    new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
+    retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
+    remove_original = st.sidebar.checkbox("Remove original columns after combining?")  # New option
 
-# Email options: extract domain, classify as personal/business, and remove personal emails
-extract_domain = st.sidebar.checkbox("Extract email domain?")
-classify_emails = st.sidebar.checkbox("Classify emails as Personal or Business?")
-remove_personal = st.sidebar.checkbox("Remove rows with Personal emails?")
+    if st.sidebar.button("Combine Selected Columns"):
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)  # Pass the new option
 
-# Address cleanup
-clean_address = st.sidebar.checkbox("Clean up and separate Address fields?")
-split_city_state_option = st.sidebar.checkbox("Split combined City and State fields?")
+    # Rename columns functionality
+    columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
+    new_names = {col: st.sidebar.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
+    if st.sidebar.button("Rename Selected Columns"):
+        df = rename_columns(df, new_names)
 
-# Lead source and campaign options
-add_lead_source = st.sidebar.checkbox("Add 'Lead Source' field?")
-lead_source_value = st.sidebar.text_input("Lead Source Value") if add_lead_source else None
-
-add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
-lead_source_detail_value = st.sidebar.text_input("Lead Source Detail Value") if add_lead_source_detail else None
-
-add_campaign = st.sidebar.checkbox("Add 'Campaign' field?")
-campaign_value = st.sidebar.text_input("Campaign Value") if add_campaign else None
-
-# Split by status options
-split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
-status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
-
-# Combine columns functionality
-st.sidebar.markdown("### Combine Columns")
-columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
-delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
-new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
-retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
-remove_original = st.sidebar.checkbox("Remove original columns after combining?")
-
-# Combine columns button
-if st.sidebar.button("Combine Selected Columns"):
-    df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
-
-# Rename columns functionality
-st.sidebar.markdown("### Rename Columns")
-columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
-new_names = {col: st.sidebar.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
-
-# Rename columns button
-if st.sidebar.button("Rename Selected Columns"):
-    df = rename_columns(df, new_names)
-
-# Karmic AI Prompt
-custom_request = st.sidebar.text_area("Karmic AI Prompt")
-
-# Sidebar input for file name
-file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
-
+    custom_request = st.sidebar.text_area("Karmic AI Prompt")
+   
 if st.button("Clean the data"):
     # Normalize names
     if normalize_names and 'Name' in df.columns:
@@ -334,50 +311,43 @@ if st.button("Clean the data"):
     st.write("### Data Preview (After Cleanup):")
     st.dataframe(df.head())
 
-    # Handle output format and splitting by status
+     # Handle output format and splitting by status
     if split_by_status and status_column:
         unique_status_values = df[status_column].unique()
         for status_value in unique_status_values:
             status_df = df[df[status_column] == status_value]
             st.write(f"#### Data for Status {status_value}")
             st.dataframe(status_df.head())
-        
-        # Custom download file name with status value
-        custom_file_name = f"{file_name}_{status_value}"
-
+            if output_format == 'CSV':
+                st.download_button(label=f"Download CSV for {status_value}",
+                                   data=status_df.to_csv(index=False),
+                                   file_name=f"cleaned_data_{status_value}.csv",
+                                   mime="text/csv")
+            elif output_format == 'Excel':
+                output = BytesIO()
+                writer = pd.ExcelWriter(output, engine='xlsxwriter')
+                status_df.to_excel(writer, index=False)
+                writer.save()
+                st.download_button(label=f"Download Excel for {status_value}",
+                                   data=output.getvalue(),
+                                   file_name=f"cleaned_data_{status_value}.xlsx",
+                                   mime="application/vnd.ms-excel")
+            elif output_format == 'TXT':
+                st.download_button(label=f"Download TXT for {status_value}",
+                                   data=status_df.to_csv(index=False, sep="\t"),
+                                   file_name=f"cleaned_data_{status_value}.txt",
+                                   mime="text/plain")
+    else:
         if output_format == 'CSV':
-            st.download_button(label=f"Download CSV for {status_value}",
-                               data=status_df.to_csv(index=False),
-                               file_name=f"{custom_file_name}.csv",
-                               mime="text/csv")
+            st.download_button(label="Download CSV", data=df.to_csv(index=False),
+                               file_name="cleaned_data.csv", mime="text/csv")
         elif output_format == 'Excel':
             output = BytesIO()
             writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            status_df.to_excel(writer, index=False)
+            df.to_excel(writer, index=False)
             writer.save()
-            st.download_button(label=f"Download Excel for {status_value}",
-                               data=output.getvalue(),
-                               file_name=f"{custom_file_name}.xlsx",
-                               mime="application/vnd.ms-excel")
+            st.download_button(label="Download Excel", data=output.getvalue(),
+                               file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
         elif output_format == 'TXT':
-            st.download_button(label=f"Download TXT for {status_value}",
-                               data=status_df.to_csv(index=False, sep="\t"),
-                               file_name=f"{custom_file_name}.txt",
-                               mime="text/plain")
-else:
-    # Custom file name for the general download
-    custom_file_name = file_name
-
-    if output_format == 'CSV':
-        st.download_button(label="Download CSV", data=df.to_csv(index=False),
-                           file_name=f"{custom_file_name}.csv", mime="text/csv")
-    elif output_format == 'Excel':
-        output = BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        df.to_excel(writer, index=False)
-        writer.save()
-        st.download_button(label="Download Excel", data=output.getvalue(),
-                           file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
-    elif output_format == 'TXT':
-        st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
-                           file_name=f"{custom_file_name}.txt", mime="text/plain")
+            st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
+                               file_name="cleaned_data.txt", mime="text/plain")
