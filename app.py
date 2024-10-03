@@ -71,10 +71,8 @@ def code_to_country(country_code):
 def convert_country(df, format_type="Long Form"):
     if 'Country' in df.columns:
         if format_type == "Country Code":
-            # Convert both full country names and codes to short codes
             df['Country'] = df['Country'].apply(lambda x: country_to_code(x) if pd.notnull(x) else x)
         elif format_type == "Long Form":
-            # Convert both short codes and full country names to long form
             df['Country'] = df['Country'].apply(lambda x: code_to_country(country_to_code(x)) if pd.notnull(x) else x)
     return df
 
@@ -122,42 +120,30 @@ def extract_python_code(response_text):
     code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
     if code_block:
         code = code_block.group(1).strip()
-        # Remove 'python' prefix
         if code.startswith("python"):
             code = code[len("python"):].strip()
-
-        # Strip out any import statements, data definitions, or print statements
-        code = re.sub(r'import.*', '', code)  # Remove import statements
-        code = re.sub(r'data\s*=.*', '', code)  # Remove data creation
-        code = re.sub(r'print\(.*\)', '', code)  # Remove print statements
-        
-        # Remove any unmatched braces
+        code = re.sub(r'import.*', '', code)
+        code = re.sub(r'data\s*=.*', '', code)
+        code = re.sub(r'print\(.*\)', '', code)
         open_braces = code.count('{')
         close_braces = code.count('}')
         if open_braces != close_braces:
-            code = re.sub(r'[{}]', '', code)  # Remove all curly braces if they are unbalanced
-
-        # Remove any leading or improper indentation
+            code = re.sub(r'[{}]', '', code)
         code_lines = code.split('\n')
-        code = "\n".join(line.lstrip() for line in code_lines)  # Strip leading indents
-
+        code = "\n".join(line.lstrip() for line in code_lines)
         return code
     else:
         return response_text.strip()
 
 # Function to validate and replace 'data' with 'df'
 def clean_and_validate_code(python_code):
-    # Automatically replace 'data' with 'df' if necessary
     python_code = python_code.replace("data", "df")
-
-    # Ensure the code references 'df' and does not contain problematic statements
     if 'df' in python_code and 'import' not in python_code:
         return python_code
     return None
 
 def generate_openai_response_and_apply(prompt, df):
     try:
-        # Use the refined prompt for the OpenAI API request
         refined_prompt = f"""
         Please generate only the Python code that modifies the dataframe `df`.
         Avoid including imports, data definitions, print statements, or any explanations.
@@ -165,7 +151,6 @@ def generate_openai_response_and_apply(prompt, df):
         {prompt}
         """
 
-        # Make the OpenAI API request
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -175,22 +160,17 @@ def generate_openai_response_and_apply(prompt, df):
             max_tokens=500
         )
 
-
-        # Extract Python code from the response
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
-
-        # Clean and validate the Python code
         python_code = clean_and_validate_code(python_code)
         if not python_code:
             st.error("Invalid Python code returned by OpenAI")
             return df
 
-        # Execute the extracted code in a controlled local environment
         local_env = {'df': df}
         try:
             exec(python_code, {}, local_env)
-            df = local_env['df']  # Extract the updated DataFrame after exec
+            df = local_env['df']
         except SyntaxError as syntax_error:
             st.error(f"Error executing OpenAI code: {syntax_error}")
             return df
@@ -233,7 +213,7 @@ if uploaded_file is not None:
 
     add_lead_source = st.sidebar.checkbox("Add 'Lead Source' field?")
     lead_source_value = st.sidebar.text_input("Lead Source Value") if add_lead_source else None
-    add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
+        add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
     lead_source_detail_value = st.sidebar.text_input("Lead Source Detail Value") if add_lead_source_detail else None
     add_campaign = st.sidebar.checkbox("Add 'Campaign' field?")
     campaign_value = st.sidebar.text_input("Campaign Value") if add_campaign else None
@@ -241,15 +221,18 @@ if uploaded_file is not None:
     split_by_status = st.sidebar.checkbox("Split output by 'Status' column?")
     status_column = st.sidebar.selectbox("Select Status Column", df.columns) if split_by_status else None
 
-        # Combine columns functionality
+    # Input for custom file name
+    custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
+
+    # Combine columns functionality
     columns_to_combine = st.sidebar.multiselect("Select columns to combine", df.columns)
     delimiter = st.sidebar.text_input("Enter a delimiter (optional)", value=", ")
     new_column_name = st.sidebar.text_input("Enter a name for the new combined column", value="Combined Column")
     retain_headings = st.sidebar.checkbox("Retain original column headings in value?")
-    remove_original = st.sidebar.checkbox("Remove original columns after combining?")  # New option
+    remove_original = st.sidebar.checkbox("Remove original columns after combining?")
 
     if st.sidebar.button("Combine Selected Columns"):
-        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)  # Pass the new option
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
 
     # Rename columns functionality
     columns_to_rename = st.sidebar.multiselect("Select columns to rename", df.columns)
@@ -311,43 +294,52 @@ if st.button("Clean the data"):
     st.write("### Data Preview (After Cleanup):")
     st.dataframe(df.head())
 
-     # Handle output format and splitting by status
+    # Handle output format and splitting by status
     if split_by_status and status_column:
         unique_status_values = df[status_column].unique()
         for status_value in unique_status_values:
             status_df = df[df[status_column] == status_value]
             st.write(f"#### Data for Status {status_value}")
             st.dataframe(status_df.head())
+            
+            # Use custom file name and append the correct extension
             if output_format == 'CSV':
+                file_name = f"{custom_file_name}_{status_value}.csv"
                 st.download_button(label=f"Download CSV for {status_value}",
                                    data=status_df.to_csv(index=False),
-                                   file_name=f"cleaned_data_{status_value}.csv",
+                                   file_name=file_name,
                                    mime="text/csv")
             elif output_format == 'Excel':
                 output = BytesIO()
                 writer = pd.ExcelWriter(output, engine='xlsxwriter')
                 status_df.to_excel(writer, index=False)
                 writer.save()
+                file_name = f"{custom_file_name}_{status_value}.xlsx"
                 st.download_button(label=f"Download Excel for {status_value}",
                                    data=output.getvalue(),
-                                   file_name=f"cleaned_data_{status_value}.xlsx",
+                                   file_name=file_name,
                                    mime="application/vnd.ms-excel")
             elif output_format == 'TXT':
+                file_name = f"{custom_file_name}_{status_value}.txt"
                 st.download_button(label=f"Download TXT for {status_value}",
                                    data=status_df.to_csv(index=False, sep="\t"),
-                                   file_name=f"cleaned_data_{status_value}.txt",
+                                   file_name=file_name,
                                    mime="text/plain")
     else:
+        # Use custom file name for the final download
         if output_format == 'CSV':
+            file_name = f"{custom_file_name}.csv"
             st.download_button(label="Download CSV", data=df.to_csv(index=False),
-                               file_name="cleaned_data.csv", mime="text/csv")
+                               file_name=file_name, mime="text/csv")
         elif output_format == 'Excel':
             output = BytesIO()
             writer = pd.ExcelWriter(output, engine='xlsxwriter')
             df.to_excel(writer, index=False)
             writer.save()
+            file_name = f"{custom_file_name}.xlsx"
             st.download_button(label="Download Excel", data=output.getvalue(),
-                               file_name="cleaned_data.xlsx", mime="application/vnd.ms-excel")
+                               file_name=file_name, mime="application/vnd.ms-excel")
         elif output_format == 'TXT':
+            file_name = f"{custom_file_name}.txt"
             st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
-                               file_name="cleaned_data.txt", mime="text/plain")
+                               file_name=file_name, mime="text/plain")
