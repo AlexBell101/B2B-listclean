@@ -213,9 +213,6 @@ if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
     else:
         df = pd.read_csv(uploaded_file, delimiter="\t")
-        # Sidebar input for file name
-    file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
-
         
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
@@ -262,6 +259,9 @@ if uploaded_file is not None:
 
     custom_request = st.sidebar.text_area("Karmic AI Prompt")
    
+    # Sidebar input for file name
+    file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
+
 if st.button("Clean the data"):
     # Normalize names
     if normalize_names and 'Name' in df.columns:
@@ -315,7 +315,7 @@ if st.button("Clean the data"):
     st.dataframe(df.head())
 
     # Handle output format and splitting by status
-if split_by_status and status_column:
+    if split_by_status and status_column:
     unique_status_values = df[status_column].unique()
     for status_value in unique_status_values:
         status_df = df[df[status_column] == status_value]
