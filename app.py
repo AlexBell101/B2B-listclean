@@ -213,7 +213,7 @@ if uploaded_file is not None:
 
     add_lead_source = st.sidebar.checkbox("Add 'Lead Source' field?")
     lead_source_value = st.sidebar.text_input("Lead Source Value") if add_lead_source else None
-        add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
+    add_lead_source_detail = st.sidebar.checkbox("Add 'Lead Source Detail' field?")
     lead_source_detail_value = st.sidebar.text_input("Lead Source Detail Value") if add_lead_source_detail else None
     add_campaign = st.sidebar.checkbox("Add 'Campaign' field?")
     campaign_value = st.sidebar.text_input("Campaign Value") if add_campaign else None
