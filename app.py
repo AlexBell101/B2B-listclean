@@ -315,12 +315,12 @@ if st.button("Clean the data"):
     st.dataframe(df.head())
 
     # Handle output format and splitting by status
-        if split_by_status and status_column:
+    if split_by_status and status_column:
         unique_status_values = df[status_column].unique()
-        for status_value in unique_status_values:
-        status_df = df[df[status_column] == status_value]
-        st.write(f"#### Data for Status {status_value}")
-        st.dataframe(status_df.head())
+            for status_value in unique_status_values:
+            status_df = df[df[status_column] == status_value]
+            st.write(f"#### Data for Status {status_value}")
+            st.dataframe(status_df.head())
         
         # Custom download file name with status value
         custom_file_name = f"{file_name}_{status_value}"
