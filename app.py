@@ -214,7 +214,7 @@ if uploaded_file is not None:
     else:
         df = pd.read_csv(uploaded_file, delimiter="\t")
         # Sidebar input for file name
-file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
+    file_name = st.sidebar.text_input("Enter a custom name for the download file (without extension)", value="cleaned_data")
 
         
     st.write("### Data Preview (Before Cleanup):")
