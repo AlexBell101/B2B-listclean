@@ -25,7 +25,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# List of common personal email domains (make sure this is defined globally)
+# Create a custom OpenAI API client
+client = openai
+
+# Fetch the OpenAI API key from Streamlit secrets
+client.api_key = st.secrets["OPENAI_API_KEY"]
+
+# List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
 # Function to combine columns based on user selection with an option to retain original column titles and remove original columns
