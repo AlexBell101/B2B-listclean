@@ -95,6 +95,33 @@ def split_first_last_name(df, full_name_column):
         st.error(f"'{full_name_column}' not found in columns")
     return df
 
+# Function to extract and clean Python code from OpenAI's response
+def extract_python_code(response_text):
+    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
+    if code_block:
+        code = code_block.group(1).strip()
+        if code.startswith("python"):
+            code = code[len("python"):].strip()
+        code = re.sub(r'import.*', '', code)
+        code = re.sub(r'data\s*=.*', '', code)
+        code = re.sub(r'print\(.*\)', '', code)
+        open_braces = code.count('{')
+        close_braces = code.count('}')
+        if open_braces != close_braces:
+            code = re.sub(r'[{}]', '', code)
+        code_lines = code.split('\n')
+        code = "\n".join(line.lstrip() for line in code_lines)
+        return code
+    else:
+        return response_text.strip()
+
+# Function to validate and replace 'data' with 'df'
+def clean_and_validate_code(python_code):
+    python_code = python_code.replace("data", "df")
+    if 'df' in python_code and 'import' not in python_code:
+        return python_code
+    return None
+
 def generate_openai_response_and_apply(prompt, df):
     try:
         refined_prompt = f"""
@@ -104,7 +131,7 @@ def generate_openai_response_and_apply(prompt, df):
         {prompt}
         """
 
-        response = client.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -113,21 +140,19 @@ def generate_openai_response_and_apply(prompt, df):
             max_tokens=500
         )
 
-        # Extract the Python code from the response
-        response_text = response['choices'][0]['message']['content']
+        response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
-
-        # Validate and execute the code
+        python_code = clean_and_validate_code(python_code)
         if not python_code:
-            st.error("OpenAI returned invalid or incomplete Python code.")
+            st.error("Invalid Python code returned by OpenAI")
             return df
 
         local_env = {'df': df}
         try:
             exec(python_code, {}, local_env)
             df = local_env['df']
-        except Exception as e:
-            st.error(f"Error executing OpenAI-generated code: {e}")
+        except SyntaxError as syntax_error:
+            st.error(f"Error executing OpenAI code: {syntax_error}")
             return df
 
         return df
