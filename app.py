@@ -220,21 +220,7 @@ if uploaded_file is not None:
         df = pd.read_csv(uploaded_file, delimiter="\t")
         
     st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
-    
-# Upload file and load the DataFrame
-uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
-if uploaded_file is not None:
-    # Load the file into a DataFrame `df`
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
-        df = pd.read_excel(uploaded_file)
-    else:
-        df = pd.read_csv(uploaded_file, delimiter="\t")
-    
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
+    st.dataframe(df.head())    
     
     # Sidebar setup with collapsible sections
     st.sidebar.title("Cleanup Options")
