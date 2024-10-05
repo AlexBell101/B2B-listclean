@@ -193,15 +193,6 @@ def generate_openai_response_and_apply(prompt, df):
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
-
-uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
-if uploaded_file is not None:
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
-        df = pd.read_excel(uploaded_file)
-    else:
-        df = pd.read_csv(uploaded_file, delimiter="\t")
         
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
@@ -209,7 +200,25 @@ if uploaded_file is not None:
 # Sidebar options grouped logically
 st.sidebar.title("Cleanup Options")
 
-if uploaded_file is not None and df is not None and not df.empty:
+# File uploader section
+uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
+
+if uploaded_file is not None:
+    # Define the dataframe based on file type
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
+        df = pd.read_excel(uploaded_file)
+    else:
+        df = pd.read_csv(uploaded_file, delimiter="\t")
+        
+    # Display a preview of the data
+    st.write("### Data Preview (Before Cleanup):")
+    st.dataframe(df.head())
+else:
+    df = None  # Initialize as None if no file is uploaded
+
+if df is not None and not df.empty:
 
     # Column Operations
     with st.sidebar.expander("Column Operations"):
