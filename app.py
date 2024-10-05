@@ -193,34 +193,19 @@ def generate_openai_response_and_apply(prompt, df):
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
-        
-# File uploader section
+                
+# File uploader and initial DataFrame
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
-
 if uploaded_file is not None:
-    # Define the dataframe based on file type
     if uploaded_file.name.endswith('.csv'):
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith(('.xls', '.xlsx')):
         df = pd.read_excel(uploaded_file)
     else:
         df = pd.read_csv(uploaded_file, delimiter="\t")
-        
-    # Display a preview of the data
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
-else:        
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
-else:
-    df = None  # Initialize `df` as None if no file is uploaded
 
-if df is not None and not df.empty:
-    # Sidebar options for transformations
-    st.sidebar.title("Cleanup Options")
-    
-    # Output format options
-    output_format = st.sidebar.radio("Select output format", ('CSV', 'Excel', 'TXT'))
+    st.write("### Data Preview (Before Cleanup):")
+    st.dataframe(df.head())
 
 # Sidebar options grouped logically
 st.sidebar.title("Cleanup Options")
