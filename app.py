@@ -39,6 +39,60 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
 # Helper functions
+def country_to_code(country_name):
+    try:
+        return pycountry.countries.lookup(country_name).alpha_2
+    except LookupError:
+        return country_name
+
+def code_to_country(country_code):
+    try:
+        return pycountry.countries.get(alpha_2=country_code).name
+    except LookupError:
+        return country_code
+
+def convert_country(df, format_type="Long Form"):
+    if 'Country' in df.columns:
+        if format_type == "Country Code":
+            df['Country'] = df['Country'].apply(lambda x: country_to_code(x) if pd.notnull(x) else x)
+        elif format_type == "Long Form":
+            df['Country'] = df['Country'].apply(lambda x: code_to_country(country_to_code(x)) if pd.notnull(x) else x)
+    return df
+
+def clean_phone(phone):
+    try:
+        parsed_phone = phonenumbers.parse(phone, "US")
+        return phonenumbers.format_number(parsed_phone, phonenumbers.PhoneNumberFormat.E164)
+    except phonenumbers.NumberParseException:
+        return phone
+
+def extract_email_domain(df):
+    if 'Email' in df.columns:
+        df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
+    return df
+
+def classify_email_type(df, personal_domains):
+    if 'Domain' in df.columns:
+        df['Email Type'] = df['Domain'].apply(lambda domain: 'Personal' if domain in personal_domains else 'Business')
+    return df
+
+def remove_personal_emails(df, personal_domains):
+    return df[df['Domain'].apply(lambda domain: domain not in personal_domains)]
+
+def split_address_2(df):
+    if 'Address' in df.columns:
+        df['Address 1'] = df['Address'].apply(lambda x: re.split(r'(?i)\b(Apt|Unit|Suite)\b', x)[0].strip())
+        df['Address 2'] = df['Address'].apply(lambda x: re.search(r'(?i)(Apt|Unit|Suite).*', x).group(0) if re.search(r'(?i)(Apt|Unit|Suite).*', x) else "")
+    return df
+
+def split_city_state(df):
+    if 'City_State' in df.columns:
+        df[['City', 'State']] = df['City_State'].str.split(',', 1, expand=True)
+        df['City'] = df['City'].str.strip()
+        df['State'] = df['State'].str.strip()
+    return df
+
+# Helper function to combine columns
 def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original):
     if columns_to_combine:
         if retain_headings:
@@ -50,7 +104,6 @@ def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_h
             df[new_column_name] = df[columns_to_combine].astype(str).apply(
                 lambda row: delimiter.join(row.values), axis=1)
 
-        # Remove original columns if the user chooses to do so
         if remove_original:
             df = df.drop(columns=columns_to_combine)
 
@@ -58,6 +111,7 @@ def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_h
     
     return df
 
+# Function to rename columns based on user input
 def rename_columns(df, new_names):
     if new_names:
         existing_columns = [col for col in new_names.keys() if col in df.columns]
@@ -70,14 +124,7 @@ def rename_columns(df, new_names):
         st.warning("Please provide new names for the selected columns.")
     return df
 
-def convert_country(df, format_type="Long Form"):
-    if 'Country' in df.columns:
-        if format_type == "Country Code":
-            df['Country'] = df['Country'].apply(lambda x: pycountry.countries.lookup(x).alpha_2 if pd.notnull(x) else x)
-        elif format_type == "Long Form":
-            df['Country'] = df['Country'].apply(lambda x: pycountry.countries.get(alpha_2=x).name if pd.notnull(x) else x)
-    return df
-
+# Function to capitalize the first letter of each word in the Name column
 def capitalize_names(df):
     if 'Name' in df.columns:
         df['Name'] = df['Name'].str.title()
@@ -86,6 +133,7 @@ def capitalize_names(df):
         st.error("'Name' column not found in the dataframe")
     return df
 
+# Function to separate first and last name
 def split_first_last_name(df, full_name_column):
     if full_name_column in df.columns:
         df['First Name'] = df[full_name_column].apply(lambda x: x.split()[0] if isinstance(x, str) else "")
@@ -193,102 +241,125 @@ if uploaded_file is not None:
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
     
- # Sidebar options grouped logically
-    st.sidebar.title("Cleanup Options")
-    if df is not None and not df.empty:
+# Sidebar options grouped logically
+st.sidebar.title("Cleanup Options")
 
-        # Column Operations
-        with st.sidebar.expander("Column Operations"):
-            columns_to_combine = st.multiselect("Select columns to combine", df.columns)
-            delimiter = st.text_input("Enter a delimiter", value=", ")
-            new_column_name = st.text_input("New Combined Column Name", value="Combined Column")
-            retain_headings = st.checkbox("Retain original column headings?")
-            remove_original = st.checkbox("Remove original columns?")
+if df is not None and not df.empty:
 
-            columns_to_rename = st.multiselect("Select columns to rename", df.columns)
-            new_names = {col: st.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
+    # Column Operations
+    with st.sidebar.expander("Column Operations"):
+        columns_to_combine = st.multiselect("Select columns to combine", df.columns)
+        delimiter = st.text_input("Enter a delimiter", value=", ")
+        new_column_name = st.text_input("New Combined Column Name", value="Combined Column")
+        retain_headings = st.checkbox("Retain original column headings?")
+        remove_original = st.checkbox("Remove original columns?")
 
-        # Data Cleanup
-        with st.sidebar.expander("Data Cleanup"):
-            phone_cleanup = st.checkbox("Standardize phone numbers?")
-            normalize_names = st.checkbox("Capitalize first letter of names?")
-            extract_domain = st.checkbox("Extract email domain?")
-            country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
+        columns_to_rename = st.multiselect("Select columns to rename", df.columns)
+        new_names = {col: st.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
 
-            # Checkbox for splitting full name and conditionally displaying the dropdown
-            split_name_option = st.checkbox("Split Full Name into First and Last Name?")
-            full_name_column = None
-            if split_name_option:
-                full_name_column = st.selectbox("Select Full Name column to split", df.columns)
+    # Data Cleanup
+    with st.sidebar.expander("Data Cleanup"):
+        phone_cleanup = st.checkbox("Standardize phone numbers?")
+        normalize_names = st.checkbox("Capitalize first letter of names?")
+        extract_domain = st.checkbox("Extract email domain?")
+        classify_emails = st.checkbox("Classify emails as Personal or Business?")
+        remove_personal = st.checkbox("Remove rows with Personal emails?")
+        clean_address = st.checkbox("Clean up and separate Address fields?")
+        split_city_state_option = st.checkbox("Split combined City and State fields?")
+        country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
 
-        # Custom Fields
-        with st.sidebar.expander("Custom Fields"):
-            add_lead_source = st.checkbox("Add 'Lead Source' field?")
-            lead_source_value = st.text_input("Lead Source Value") if add_lead_source else None
-            add_campaign = st.checkbox("Add 'Campaign' field?")
-            campaign_value = st.text_input("Campaign Value") if add_campaign else None
+        # Checkbox for splitting full name and conditionally displaying the dropdown
+        split_name_option = st.checkbox("Split Full Name into First and Last Name?")
+        full_name_column = None
+        if split_name_option:
+            full_name_column = st.selectbox("Select Full Name column to split", df.columns)
 
-        # Advanced Transformations (Karmic AI Prompt)
-        with st.sidebar.expander("Advanced Transformations"):
-            custom_request = st.text_area("Karmic AI Prompt")
+    # Custom Fields
+    with st.sidebar.expander("Custom Fields"):
+        add_lead_source = st.checkbox("Add 'Lead Source' field?")
+        lead_source_value = st.text_input("Lead Source Value") if add_lead_source else None
+        add_lead_source_detail = st.checkbox("Add 'Lead Source Detail' field?")
+        lead_source_detail_value = st.text_input("Lead Source Detail Value") if add_lead_source_detail else None
+        add_campaign = st.checkbox("Add 'Campaign' field?")
+        campaign_value = st.text_input("Campaign Value") if add_campaign else None
 
-        # Custom File Name and Output Format
-        custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
-        output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
+    # Advanced Transformations (Karmic AI Prompt)
+    with st.sidebar.expander("Advanced Transformations"):
+        custom_request = st.text_area("Karmic AI Prompt")
+
+    # Custom File Name and Output Format
+    custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
+    output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
         # Clean the data and apply transformations
         if st.button("Clean the data"):
-            # Normalize names
-            if normalize_names and 'Name' in df.columns:
-                df = capitalize_names(df)
-                
-            # Split full name into first and last name (if user opts to split names)
-            if split_name_option and full_name_column and full_name_column in df.columns:
-                df = split_first_last_name(df, full_name_column)
-            
-            # Convert country column based on selected format
-            if 'Country' in df.columns:
-                df = convert_country(df, country_format)
+    # Normalize names
+    if normalize_names and 'Name' in df.columns:
+        df = capitalize_names(df)
 
-            # Clean phone numbers
-            if phone_cleanup and 'Phone' in df.columns:
-                df['Phone'] = df['Phone'].apply(phonenumbers.format_number, numobj=phonenumbers.PhoneNumberFormat.E164)
+    # Split full name into first and last name (if user opts to split names)
+    if split_name_option and full_name_column and full_name_column in df.columns:
+        df = split_first_last_name(df, full_name_column)
 
-            # Apply other cleanups (email domain extraction, etc.)
-            if extract_domain:
-                df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
+    # Convert country column based on selected format
+    if 'Country' in df.columns:
+        df = convert_country(df, country_format)
 
-            # Combine columns
-            if columns_to_combine:
-                df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
+    # Clean phone numbers
+    if phone_cleanup and 'Phone' in df.columns:
+        df['Phone'] = df['Phone'].apply(clean_phone)
 
-            # Rename columns
-            if columns_to_rename:
-                df = rename_columns(df, new_names)
+    # Extract email domain
+    if extract_domain:
+        df = extract_email_domain(df)
 
-            # Add additional columns (Lead Source, Campaign, etc.)
-            if add_lead_source:
-                df['Lead Source'] = lead_source_value
-            if add_campaign:
-                df['Campaign'] = campaign_value
+    # Classify emails as Personal or Business
+    if classify_emails:
+        df = classify_email_type(df, personal_domains)
 
-            # Apply OpenAI prompt custom transformation
-            if custom_request:
-                df = generate_openai_response_and_apply(custom_request, df)
+    # Remove personal emails
+    if remove_personal:
+        df = remove_personal_emails(df, personal_domains)
 
-            # Display the cleaned data
-            st.write("### Data Preview (After Cleanup):")
-            st.dataframe(df.head())
+    # Clean and split addresses
+    if clean_address:
+        df = split_address_2(df)
+    if split_city_state_option:
+        df = split_city_state(df)
 
-            # Output format handling
-            if output_format == 'CSV':
-                file_name = f"{custom_file_name}.csv"
-                st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
-            elif output_format == 'Excel':
-                output = BytesIO()
-                writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                df.to_excel(writer, index=False)
-                writer.save()
-                st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
-            elif output_format == 'TXT':
-                st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
+    # Combine columns
+    if columns_to_combine:
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
+
+    # Rename columns
+    if columns_to_rename:
+        df = rename_columns(df, new_names)
+
+    # Add additional columns (Lead Source, Campaign, etc.)
+    if add_lead_source:
+        df['Lead Source'] = lead_source_value
+    if add_lead_source_detail:
+        df['Lead Source Detail'] = lead_source_detail_value
+    if add_campaign:
+        df['Campaign'] = campaign_value
+
+    # Apply OpenAI prompt custom transformation
+    if custom_request:
+        df = generate_openai_response_and_apply(custom_request, df)
+
+    # Display the cleaned data
+    st.write("### Data Preview (After Cleanup):")
+    st.dataframe(df.head())
+
+    # Output format handling
+    if output_format == 'CSV':
+        file_name = f"{custom_file_name}.csv"
+        st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
+    elif output_format == 'Excel':
+        output = BytesIO()
+        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        df.to_excel(writer, index=False)
+        writer.save()
+        st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
+    elif output_format == 'TXT':
+        st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
