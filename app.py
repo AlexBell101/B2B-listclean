@@ -312,18 +312,6 @@ if st.button("Clean the data"):
     # Apply OpenAI prompt custom transformation
     if custom_request:
         df = generate_openai_response_and_apply(custom_request, df)
-
-    # File uploader and initialize DataFrame
-uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
-
-if uploaded_file is not None:
-    # Define the dataframe based on file type
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
-        df = pd.read_excel(uploaded_file)
-    else:
-        df = pd.read_csv(uploaded_file, delimiter="\t")
         
     # Display a preview of the data
     st.write("### Data Preview (Before Cleanup):")
