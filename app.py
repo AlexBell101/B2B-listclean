@@ -35,6 +35,9 @@ client.api_key = st.secrets["OPENAI_API_KEY"]
 # List of common personal email domains
 personal_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'outlook.com']
 
+# Initialize df as None at the start
+df = None  # This ensures df is defined before we reference it
+
 # Helper functions
 def country_to_code(country_name):
     try:
