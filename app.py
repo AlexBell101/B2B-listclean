@@ -291,8 +291,8 @@ if df is not None and not df.empty:
     custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
     output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
-        # Clean the data and apply transformations
-        if st.button("Clean the data"):
+    # Clean the data and apply transformations
+if st.button("Clean the data"):
     # Normalize names
     if normalize_names and 'Name' in df.columns:
         df = capitalize_names(df)
