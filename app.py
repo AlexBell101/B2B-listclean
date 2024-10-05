@@ -66,9 +66,14 @@ def clean_phone(phone):
     except phonenumbers.NumberParseException:
         return phone
 
+# Function to extract email domain
 def extract_email_domain(df):
     if 'Email' in df.columns:
-        df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
+        df['Domain'] = df['Email'].apply(
+            lambda x: x.split('@')[1] if isinstance(x, str) and '@' in x else ''
+        )
+    else:
+        st.error("'Email' column not found in the dataframe")
     return df
 
 def classify_email_type(df, personal_domains):
