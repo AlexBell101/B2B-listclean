@@ -206,10 +206,6 @@ def generate_openai_response_and_apply(prompt, df):
         st.error(f"OpenAI request failed: {e}")
         return df
 
-# UI setup for the app
-st.title("📋 List Karma")
-st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot. Use the Karmic AI Prompt if you need a specific transformation applied to your file.")
-
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
 if uploaded_file is not None:
     if uploaded_file.name.endswith('.csv'):
@@ -221,6 +217,11 @@ if uploaded_file is not None:
         
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
+
+# UI setup for the app
+st.title("📋 List Karma")
+st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot. Use the Karmic AI Prompt if you need a specific transformation applied to your file.")
+
 
    # Sidebar setup with collapsible sections
 st.sidebar.title("Cleanup Options")
