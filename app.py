@@ -25,6 +25,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# UI setup for the app
+st.title("📋 List Karma")
+st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot. Use the Karmic AI Prompt if you need a specific transformation applied to your file.")
+
 # Create a custom OpenAI API client
 client = openai
 
@@ -218,121 +222,142 @@ if uploaded_file is not None:
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
     
-# UI setup for the app
-st.title("📋 List Karma")
-st.write("Upload your marketing lists and clean them up for CRM tools like Salesforce, Marketo, HubSpot. Use the Karmic AI Prompt if you need a specific transformation applied to your file.")
-
-
+# Upload file and load the DataFrame
+uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
+if uploaded_file is not None:
+    # Load the file into a DataFrame `df`
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
+        df = pd.read_excel(uploaded_file)
+    else:
+        df = pd.read_csv(uploaded_file, delimiter="\t")
     
-   # Sidebar setup with collapsible sections
-st.sidebar.title("Cleanup Options")
-
-# Column Operations Section
-with st.sidebar.expander("Column Operations"):
-    # Combine columns functionality
-    columns_to_combine = st.multiselect("Select columns to combine", df.columns)
-    delimiter = st.text_input("Enter a delimiter (optional)", value=", ")
-    new_column_name = st.text_input("Enter a name for the new combined column", value="Combined Column")
-    retain_headings = st.checkbox("Retain original column headings in value?")
-    remove_original = st.checkbox("Remove original columns after combining?")
-
-    if st.button("Combine Selected Columns"):
-        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
-
-    # Rename columns functionality
-    columns_to_rename = st.multiselect("Select columns to rename", df.columns)
-    new_names = {col: st.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
-    if st.button("Rename Selected Columns"):
-        df = rename_columns(df, new_names)
-
-    # Split First and Last Name functionality
-    full_name_column = st.selectbox("Select the Full Name column to split", df.columns)
-    if st.button("Split First and Last Name"):
-        df = split_first_last_name(df, full_name_column)
-
-# Data Cleanup Section
-with st.sidebar.expander("Data Cleanup"):
-    phone_cleanup = st.checkbox("Standardize phone numbers?")
-    normalize_names = st.checkbox("Capitalize first letter of names?")
-    extract_domain = st.checkbox("Extract email domain?")
-    classify_emails = st.checkbox("Classify emails as Personal or Business?")
-    remove_personal = st.checkbox("Remove rows with Personal emails?")
-    clean_address = st.checkbox("Clean up and separate Address fields?")
-    split_city_state_option = st.checkbox("Split combined City and State fields?")
-    country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
-
-# Custom Fields Section
-with st.sidebar.expander("Custom Fields"):
-    add_lead_source = st.checkbox("Add 'Lead Source' field?")
-    lead_source_value = st.text_input("Lead Source Value") if add_lead_source else None
-    add_lead_source_detail = st.checkbox("Add 'Lead Source Detail' field?")
-    lead_source_detail_value = st.text_input("Lead Source Detail Value") if add_lead_source_detail else None
-    add_campaign = st.checkbox("Add 'Campaign' field?")
-    campaign_value = st.text_input("Campaign Value") if add_campaign else None
-
-# Advanced Transformations Section
-with st.sidebar.expander("Advanced Transformations"):
-    custom_request = st.text_area("Karmic AI Prompt")
-   
-if st.button("Clean the data"):
-    # Normalize names
-    if normalize_names and 'Name' in df.columns:
-        df['Name'] = df['Name'].str.title()
-        
-    # Normalize names (capitalize first letter of names)
-    if normalize_names and 'Name' in df.columns:
-        df = capitalize_names(df)
-        
-    # Split full name into first and last name
-    if 'Full Name' in df.columns:
-        df = split_first_last_name(df, 'Full Name')  # Assuming 'Full Name' is the column name
-    
-    # Convert country column based on selected format
-    if 'Country' in df.columns:
-        df = convert_country(df, country_format)
-
-    # Clean phone numbers
-    if phone_cleanup and 'Phone' in df.columns:
-        df['Phone'] = df['Phone'].apply(clean_phone)
-
-    if extract_domain:
-        df = extract_email_domain(df)  # Ensure 'Domain' column is created
-
-    if classify_emails:
-        df = classify_email_type(df, personal_domains)
-
-    if remove_personal:
-        df = remove_personal_emails(df, personal_domains)
-
-    # Clean and split addresses
-    if clean_address:
-        df = split_address_2(df)
-    if split_city_state_option:
-        df = split_city_state(df)
-
-    # Add additional columns (Lead Source, Campaign, etc.)
-    if add_lead_source:
-        df['Lead Source'] = lead_source_value
-    if add_lead_source_detail:
-        df['Lead Source Detail'] = lead_source_detail_value
-    if add_campaign:
-        df['Campaign'] = campaign_value
-
-    # Apply OpenAI prompt custom transformation
-    if custom_request:
-        df = generate_openai_response_and_apply(custom_request, df)
-
-    # Apply combine columns functionality
-    if columns_to_combine:
-        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
-
-    # Apply rename columns functionality
-    if columns_to_rename:
-        df = rename_columns(df, new_names)
-
-    # Display the cleaned data
-    st.write("### Data Preview (After Cleanup):")
+    st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
+    
+    # Sidebar setup with collapsible sections
+    st.sidebar.title("Cleanup Options")
+
+    # === NEW: Only show the column operations if `df` is defined ===
+    if df is not None:  # Ensure `df` exists
+
+        # === Column Operations Section ===
+        with st.sidebar.expander("Column Operations"):
+            # Combine columns functionality
+            columns_to_combine = st.multiselect("Select columns to combine", df.columns)
+            delimiter = st.text_input("Enter a delimiter (optional)", value=", ")
+            new_column_name = st.text_input("Enter a name for the new combined column", value="Combined Column")
+            retain_headings = st.checkbox("Retain original column headings in value?")
+            remove_original = st.checkbox("Remove original columns after combining?")
+
+            # Combine columns button logic
+            if st.button("Combine Selected Columns"):
+                if columns_to_combine:  # Ensure columns are selected
+                    df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
+                else:
+                    st.warning("Please select columns to combine.")
+            
+            # Rename columns functionality
+            columns_to_rename = st.multiselect("Select columns to rename", df.columns)
+            new_names = {col: st.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
+            
+            # Rename columns button logic
+            if st.button("Rename Selected Columns"):
+                if columns_to_rename:
+                    df = rename_columns(df, new_names)
+                else:
+                    st.warning("Please select columns to rename.")
+
+            # Split First and Last Name functionality
+            full_name_column = st.selectbox("Select the Full Name column to split", df.columns)
+            if st.button("Split First and Last Name"):
+                df = split_first_last_name(df, full_name_column)
+
+        # === Data Cleanup Section ===
+        with st.sidebar.expander("Data Cleanup"):
+            phone_cleanup = st.checkbox("Standardize phone numbers?")
+            normalize_names = st.checkbox("Capitalize first letter of names?")
+            extract_domain = st.checkbox("Extract email domain?")
+            classify_emails = st.checkbox("Classify emails as Personal or Business?")
+            remove_personal = st.checkbox("Remove rows with Personal emails?")
+            clean_address = st.checkbox("Clean up and separate Address fields?")
+            split_city_state_option = st.checkbox("Split combined City and State fields?")
+            country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
+
+        # === Custom Fields Section ===
+        with st.sidebar.expander("Custom Fields"):
+            add_lead_source = st.checkbox("Add 'Lead Source' field?")
+            lead_source_value = st.text_input("Lead Source Value") if add_lead_source else None
+            add_lead_source_detail = st.checkbox("Add 'Lead Source Detail' field?")
+            lead_source_detail_value = st.text_input("Lead Source Detail Value") if add_lead_source_detail else None
+            add_campaign = st.checkbox("Add 'Campaign' field?")
+            campaign_value = st.text_input("Campaign Value") if add_campaign else None
+
+        # === Advanced Transformations Section ===
+        with st.sidebar.expander("Advanced Transformations"):
+            custom_request = st.text_area("Karmic AI Prompt")
+   
+        # Clean the data and apply transformations
+        if st.button("Clean the data"):
+            # Normalize names
+            if normalize_names and 'Name' in df.columns:
+                df['Name'] = df['Name'].str.title()
+                
+            # Normalize names (capitalize first letter of names)
+            if normalize_names and 'Name' in df.columns:
+                df = capitalize_names(df)
+                
+            # Split full name into first and last name
+            if 'Full Name' in df.columns:
+                df = split_first_last_name(df, 'Full Name')  # Assuming 'Full Name' is the column name
+            
+            # Convert country column based on selected format
+            if 'Country' in df.columns:
+                df = convert_country(df, country_format)
+
+            # Clean phone numbers
+            if phone_cleanup and 'Phone' in df.columns:
+                df['Phone'] = df['Phone'].apply(clean_phone)
+
+            if extract_domain:
+                df = extract_email_domain(df)  # Ensure 'Domain' column is created
+
+            if classify_emails:
+                df = classify_email_type(df, personal_domains)
+
+            if remove_personal:
+                df = remove_personal_emails(df, personal_domains)
+
+            # Clean and split addresses
+            if clean_address:
+                df = split_address_2(df)
+            if split_city_state_option:
+                df = split_city_state(df)
+
+            # Add additional columns (Lead Source, Campaign, etc.)
+            if add_lead_source:
+                df['Lead Source'] = lead_source_value
+            if add_lead_source_detail:
+                df['Lead Source Detail'] = lead_source_detail_value
+            if add_campaign:
+                df['Campaign'] = campaign_value
+
+            # Apply OpenAI prompt custom transformation
+            if custom_request:
+                df = generate_openai_response_and_apply(custom_request, df)
+
+            # Apply combine columns functionality
+            if columns_to_combine:
+                df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
+
+            # Apply rename columns functionality
+            if columns_to_rename:
+                df = rename_columns(df, new_names)
+
+            # Display the cleaned data
+            st.write("### Data Preview (After Cleanup):")
+            st.dataframe(df.head())
 
     # Handle output format and splitting by status
     if split_by_status and status_column:
