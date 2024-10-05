@@ -210,6 +210,8 @@ if uploaded_file is not None:
 # Sidebar options grouped logically
 st.sidebar.title("Cleanup Options")
 
+if df is not None and not df.empty:
+
     # Column Operations
     with st.sidebar.expander("Column Operations"):
         columns_to_combine = st.multiselect("Select columns to combine", df.columns)
