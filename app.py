@@ -334,13 +334,16 @@ else:
 
     # Output format handling
     if output_format == 'CSV':
-        file_name = f"{custom_file_name}.csv"
-        st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
-    elif output_format == 'Excel':
-        output = BytesIO()
-        writer = pd.ExcelWriter(output, engine='xlsxwriter')
-        df.to_excel(writer, index=False)
-        writer.save()
-        st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
-    elif output_format == 'TXT':
-        st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
+            file_name = f"{custom_file_name}.csv"
+            st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
+        elif output_format == 'Excel':
+            output = BytesIO()
+            writer = pd.ExcelWriter(output, engine='xlsxwriter')
+            df.to_excel(writer, index=False)
+            writer.save()
+            st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
+        elif output_format == 'TXT':
+            st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
+
+else:
+    st.write("Please upload a file to proceed.")
