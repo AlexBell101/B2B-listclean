@@ -63,20 +63,6 @@ def rename_columns(df, new_names):
     df = df.rename(columns=new_names)
     return df
 
-# Helper function for country code conversion (Country Name to ISO Code)
-def country_to_code(country_name):
-    try:
-        return pycountry.countries.lookup(country_name).alpha_2
-    except LookupError:
-        return country_name
-
-# Helper function for ISO code to full country name conversion
-def code_to_country(country_code):
-    try:
-        return pycountry.countries.get(alpha_2=country_code).name
-    except LookupError:
-        return country_code
-
 # Function to convert country name to ISO code or vice versa based on format_type
 def convert_country(df, format_type="Long Form"):
     if 'Country' in df.columns:
@@ -85,30 +71,6 @@ def convert_country(df, format_type="Long Form"):
         elif format_type == "Long Form":
             df['Country'] = df['Country'].apply(lambda x: code_to_country(country_to_code(x)) if pd.notnull(x) else x)
     return df
-
-# Helper function for phone number cleaning
-def clean_phone(phone):
-    try:
-        parsed_phone = phonenumbers.parse(phone, "US")
-        return phonenumbers.format_number(parsed_phone, phonenumbers.PhoneNumberFormat.E164)
-    except phonenumbers.NumberParseException:
-        return phone
-
-# Function to extract email domain
-def extract_email_domain(df):
-    if 'Email' in df.columns:
-        df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if '@' in x else '')
-    return df
-
-# Function to classify email type as 'Personal' or 'Business'
-def classify_email_type(df, personal_domains):
-    if 'Domain' in df.columns:
-        df['Email Type'] = df['Domain'].apply(lambda domain: 'Personal' if domain in personal_domains else 'Business')
-    return df
-
-# Function to remove rows with personal emails
-def remove_personal_emails(df, personal_domains):
-    return df[df['Domain'].apply(lambda domain: domain not in personal_domains)]
 
 # Function to capitalize the first letter of each word in the Name column
 def capitalize_names(df):
@@ -129,104 +91,25 @@ def split_first_last_name(df, full_name_column):
         st.error(f"'{full_name_column}' not found in columns")
     return df
 
-# Function to separate Address 2 from Address 1
-def split_address_2(df):
-    if 'Address' in df.columns:
-        df['Address 1'] = df['Address'].apply(lambda x: re.split(r'(?i)\b(Apt|Unit|Suite)\b', x)[0].strip())
-        df['Address 2'] = df['Address'].apply(lambda x: re.search(r'(?i)(Apt|Unit|Suite).*', x).group(0) if re.search(r'(?i)(Apt|Unit|Suite).*', x) else "")
-    return df
-
-# Function to split city and state if they are combined
-def split_city_state(df):
-    if 'City_State' in df.columns:
-        df[['City', 'State']] = df['City_State'].str.split(',', 1, expand=True)
-        df['City'] = df['City'].str.strip()
-        df['State'] = df['State'].str.strip()
-    return df
-        
-# Function to extract and clean Python code from OpenAI's response
-def extract_python_code(response_text):
-    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
-    if code_block:
-        code = code_block.group(1).strip()
-        if code.startswith("python"):
-            code = code[len("python"):].strip()
-        code = re.sub(r'import.*', '', code)
-        code = re.sub(r'data\s*=.*', '', code)
-        code = re.sub(r'print\(.*\)', '', code)
-        open_braces = code.count('{')
-        close_braces = code.count('}')
-        if open_braces != close_braces:
-            code = re.sub(r'[{}]', '', code)
-        code_lines = code.split('\n')
-        code = "\n".join(line.lstrip() for line in code_lines)
-        return code
-    else:
-        return response_text.strip()
-
-# Function to validate and replace 'data' with 'df'
-def clean_and_validate_code(python_code):
-    python_code = python_code.replace("data", "df")
-    if 'df' in python_code and 'import' not in python_code:
-        return python_code
-    return None
-
-def generate_openai_response_and_apply(prompt, df):
-    try:
-        refined_prompt = f"""
-        Please generate only the Python code that modifies the dataframe `df`.
-        Avoid including imports, data definitions, print statements, or any explanations.
-        The code should focus exclusively on modifying the `df` dataframe based on the following request:
-        {prompt}
-        """
-
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": refined_prompt}
-            ],
-            max_tokens=500
-        )
-
-        response_text = response.choices[0].message.content
-        python_code = extract_python_code(response_text)
-        python_code = clean_and_validate_code(python_code)
-        if not python_code:
-            st.error("Invalid Python code returned by OpenAI")
-            return df
-
-        local_env = {'df': df}
-        try:
-            exec(python_code, {}, local_env)
-            df = local_env['df']
-        except SyntaxError as syntax_error:
-            st.error(f"Error executing OpenAI code: {syntax_error}")
-            return df
-
-        return df
-
-    except Exception as e:
-        st.error(f"OpenAI request failed: {e}")
-        return df
-
+# Upload file and load the DataFrame
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
 if uploaded_file is not None:
+    # Load the file into a DataFrame `df`
     if uploaded_file.name.endswith('.csv'):
         df = pd.read_csv(uploaded_file)
     elif uploaded_file.name.endswith(('.xls', '.xlsx')):
         df = pd.read_excel(uploaded_file)
     else:
         df = pd.read_csv(uploaded_file, delimiter="\t")
-        
+    
     st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())    
+    st.dataframe(df.head())
     
     # Sidebar setup with collapsible sections
     st.sidebar.title("Cleanup Options")
 
     # === NEW: Only show the column operations if `df` is defined ===
-    if df is not None:  # Ensure `df` exists
+    if df is not None and not df.empty:  # Ensure `df` exists and is not empty
 
         # === Column Operations Section ===
         with st.sidebar.expander("Column Operations"):
@@ -283,14 +166,16 @@ if uploaded_file is not None:
         # === Advanced Transformations Section ===
         with st.sidebar.expander("Advanced Transformations"):
             custom_request = st.text_area("Karmic AI Prompt")
-   
+
+        # === Custom File Name Section ===
+        custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
+
+        # === Output Format Section ===
+        output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
+
         # Clean the data and apply transformations
         if st.button("Clean the data"):
             # Normalize names
-            if normalize_names and 'Name' in df.columns:
-                df['Name'] = df['Name'].str.title()
-                
-            # Normalize names (capitalize first letter of names)
             if normalize_names and 'Name' in df.columns:
                 df = capitalize_names(df)
                 
@@ -308,6 +193,9 @@ if uploaded_file is not None:
 
             if extract_domain:
                 df = extract_email_domain(df)  # Ensure 'Domain' column is created
+
+            if classify_emails:
+                df = |oai:code-citation|
 
             if classify_emails:
                 df = classify_email_type(df, personal_domains)
@@ -333,64 +221,19 @@ if uploaded_file is not None:
             if custom_request:
                 df = generate_openai_response_and_apply(custom_request, df)
 
-            # Apply combine columns functionality
-            if columns_to_combine:
-                df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
-
-            # Apply rename columns functionality
-            if columns_to_rename:
-                df = rename_columns(df, new_names)
-
             # Display the cleaned data
             st.write("### Data Preview (After Cleanup):")
             st.dataframe(df.head())
 
-    # Handle output format and splitting by status
-    if split_by_status and status_column:
-        unique_status_values = df[status_column].unique()
-        for status_value in unique_status_values:
-            status_df = df[df[status_column] == status_value]
-            st.write(f"#### Data for Status {status_value}")
-            st.dataframe(status_df.head())
-            
-            # Use custom file name and append the correct extension
+            # Output format handling
             if output_format == 'CSV':
-                file_name = f"{custom_file_name}_{status_value}.csv"
-                st.download_button(label=f"Download CSV for {status_value}",
-                                   data=status_df.to_csv(index=False),
-                                   file_name=file_name,
-                                   mime="text/csv")
+                file_name = f"{custom_file_name}.csv"
+                st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
             elif output_format == 'Excel':
                 output = BytesIO()
                 writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                status_df.to_excel(writer, index=False)
+                df.to_excel(writer, index=False)
                 writer.save()
-                file_name = f"{custom_file_name}_{status_value}.xlsx"
-                st.download_button(label=f"Download Excel for {status_value}",
-                                   data=output.getvalue(),
-                                   file_name=file_name,
-                                   mime="application/vnd.ms-excel")
+                st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
             elif output_format == 'TXT':
-                file_name = f"{custom_file_name}_{status_value}.txt"
-                st.download_button(label=f"Download TXT for {status_value}",
-                                   data=status_df.to_csv(index=False, sep="\t"),
-                                   file_name=file_name,
-                                   mime="text/plain")
-    else:
-        # Use custom file name for the final download
-        if output_format == 'CSV':
-            file_name = f"{custom_file_name}.csv"
-            st.download_button(label="Download CSV", data=df.to_csv(index=False),
-                               file_name=file_name, mime="text/csv")
-        elif output_format == 'Excel':
-            output = BytesIO()
-            writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            df.to_excel(writer, index=False)
-            writer.save()
-            file_name = f"{custom_file_name}.xlsx"
-            st.download_button(label="Download Excel", data=output.getvalue(),
-                               file_name=file_name, mime="application/vnd.ms-excel")
-        elif output_format == 'TXT':
-            file_name = f"{custom_file_name}.txt"
-            st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"),
-                               file_name=file_name, mime="text/plain")
+                st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
