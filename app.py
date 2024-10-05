@@ -214,10 +214,12 @@ if uploaded_file is not None:
             normalize_names = st.checkbox("Capitalize first letter of names?")
             extract_domain = st.checkbox("Extract email domain?")
             country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
-            split_name_option = st.sidebar.checkbox("Split Full Name into First and Last Name?")
+
+            # Checkbox for splitting full name and conditionally displaying the dropdown
+            split_name_option = st.checkbox("Split Full Name into First and Last Name?")
             full_name_column = None
             if split_name_option:
-             full_name_column = st.sidebar.selectbox("Select Full Name column to split", df.columns)
+            full_name_column = st.selectbox("Select Full Name column to split", df.columns)
 
         # Custom Fields
         with st.sidebar.expander("Custom Fields"):
