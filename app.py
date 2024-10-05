@@ -194,11 +194,10 @@ def generate_openai_response_and_apply(prompt, df):
         st.error(f"OpenAI request failed: {e}")
         return df
                 
-# Initialize df as None at the start
-df = None
-
 # File uploader and initial DataFrame
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
+
+# Check if the file is uploaded and read it
 if uploaded_file is not None:
     if uploaded_file.name.endswith('.csv'):
         df = pd.read_csv(uploaded_file)
@@ -209,21 +208,10 @@ if uploaded_file is not None:
 
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
-    
-# Sidebar options grouped logically
-st.sidebar.title("Cleanup Options")
 
-# Check if df is initialized and not empty before using it
+# Sidebar options only if the file is uploaded
 if df is not None and not df.empty:
-
-
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
-
-# Sidebar options grouped logically
-st.sidebar.title("Cleanup Options")
-
-if df is not None and not df.empty:
+    st.sidebar.title("Cleanup Options")
 
     # Column Operations
     with st.sidebar.expander("Column Operations"):
@@ -270,70 +258,57 @@ if df is not None and not df.empty:
     custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
     output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
-# Clean the data and apply transformations
-if st.button("Clean the data"):
-    # Normalize names
-    if normalize_names and 'Name' in df.columns:
-        df = capitalize_names(df)
+  # Clean the data and apply transformations
+    if st.button("Clean the data"):
+        # Apply all the cleanup functions (e.g., capitalizing names, phone cleanup, etc.)
+        if normalize_names and 'Name' in df.columns:
+            df = capitalize_names(df)
 
-    # Split full name into first and last name (if user opts to split names)
-    if split_name_option and full_name_column and full_name_column in df.columns:
-        df = split_first_last_name(df, full_name_column)
+        if split_name_option and full_name_column and full_name_column in df.columns:
+            df = split_first_last_name(df, full_name_column)
 
-    # Convert country column based on selected format
-    if 'Country' in df.columns:
-        df = convert_country(df, country_format)
+        if 'Country' in df.columns:
+            df = convert_country(df, country_format)
 
-    # Clean phone numbers
-    if phone_cleanup and 'Phone' in df.columns:
-        df['Phone'] = df['Phone'].apply(clean_phone)
+        if phone_cleanup and 'Phone' in df.columns:
+            df['Phone'] = df['Phone'].apply(clean_phone)
 
-    # Extract email domain
-    if extract_domain:
-        df = extract_email_domain(df)
+        if extract_domain:
+            df = extract_email_domain(df)
 
-    # Classify emails as Personal or Business
-    if classify_emails:
-        df = classify_email_type(df, personal_domains)
+        if classify_emails:
+            df = classify_email_type(df, personal_domains)
 
-    # Remove personal emails
-    if remove_personal:
-        df = remove_personal_emails(df, personal_domains)
+        if remove_personal:
+            df = remove_personal_emails(df, personal_domains)
 
-    # Clean and split addresses
-    if clean_address:
-        df = split_address_2(df)
-    if split_city_state_option:
-        df = split_city_state(df)
+        if clean_address:
+            df = split_address_2(df)
+        if split_city_state_option:
+            df = split_city_state(df)
 
-    # Combine columns
-    if columns_to_combine:
-        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
+        if columns_to_combine:
+            df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
 
-    # Rename columns
-    if columns_to_rename:
-        df = rename_columns(df, new_names)
+        if columns_to_rename:
+            df = rename_columns(df, new_names)
 
-    # Add additional columns (Lead Source, Campaign, etc.)
-    if add_lead_source:
-        df['Lead Source'] = lead_source_value
-    if add_lead_source_detail:
-        df['Lead Source Detail'] = lead_source_detail_value
-    if add_campaign:
-        df['Campaign'] = campaign_value
+        if add_lead_source:
+            df['Lead Source'] = lead_source_value
+        if add_lead_source_detail:
+            df['Lead Source Detail'] = lead_source_detail_value
+        if add_campaign:
+            df['Campaign'] = campaign_value
 
-    # Apply OpenAI prompt custom transformation
-    if custom_request:
-        df = generate_openai_response_and_apply(custom_request, df)
-        
-    # Display a preview of the data
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
-else:
-    df = None  # Initialize as None if no file is uploaded
+        if custom_request:
+            df = generate_openai_response_and_apply(custom_request, df)
 
-    # Output format handling
-    if output_format == 'CSV':
+        # Show the cleaned data preview
+        st.write("### Data Preview (After Cleanup):")
+        st.dataframe(df.head())
+
+        # Output format handling
+        if output_format == 'CSV':
             file_name = f"{custom_file_name}.csv"
             st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
         elif output_format == 'Excel':
@@ -344,6 +319,5 @@ else:
             st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
         elif output_format == 'TXT':
             st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
-
 else:
     st.write("Please upload a file to proceed.")
