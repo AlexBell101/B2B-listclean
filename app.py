@@ -195,9 +195,6 @@ if uploaded_file is not None:
                 df = extract_email_domain(df)  # Ensure 'Domain' column is created
 
             if classify_emails:
-                df = |oai:code-citation|
-
-            if classify_emails:
                 df = classify_email_type(df, personal_domains)
 
             if remove_personal:
