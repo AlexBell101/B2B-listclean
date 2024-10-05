@@ -219,7 +219,7 @@ if uploaded_file is not None:
             split_name_option = st.checkbox("Split Full Name into First and Last Name?")
             full_name_column = None
             if split_name_option:
-            full_name_column = st.selectbox("Select Full Name column to split", df.columns)
+                full_name_column = st.selectbox("Select Full Name column to split", df.columns)
 
         # Custom Fields
         with st.sidebar.expander("Custom Fields"):
