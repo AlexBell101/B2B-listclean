@@ -194,6 +194,9 @@ def generate_openai_response_and_apply(prompt, df):
         st.error(f"OpenAI request failed: {e}")
         return df
                 
+# Initialize df as None at the start
+df = None
+
 # File uploader and initial DataFrame
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
 if uploaded_file is not None:
@@ -203,6 +206,16 @@ if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
     else:
         df = pd.read_csv(uploaded_file, delimiter="\t")
+
+    st.write("### Data Preview (Before Cleanup):")
+    st.dataframe(df.head())
+    
+# Sidebar options grouped logically
+st.sidebar.title("Cleanup Options")
+
+# Check if df is initialized and not empty before using it
+if df is not None and not df.empty:
+
 
     st.write("### Data Preview (Before Cleanup):")
     st.dataframe(df.head())
