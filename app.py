@@ -19,7 +19,6 @@ st.markdown(
         color: #000000;  /* Black text */
         font-family: 'Roboto', sans-serif;
     }
-
     </style>
     """,
     unsafe_allow_html=True
@@ -31,8 +30,6 @@ st.write("Upload your marketing lists and clean them up for CRM tools like Sales
 
 # Create a custom OpenAI API client
 client = openai
-
-# Fetch the OpenAI API key from Streamlit secrets
 client.api_key = st.secrets["OPENAI_API_KEY"]
 
 # List of common personal email domains
@@ -66,12 +63,9 @@ def clean_phone(phone):
     except phonenumbers.NumberParseException:
         return phone
 
-# Function to extract email domain
 def extract_email_domain(df):
     if 'Email' in df.columns:
-        df['Domain'] = df['Email'].apply(
-            lambda x: x.split('@')[1] if isinstance(x, str) and '@' in x else ''
-        )
+        df['Domain'] = df['Email'].apply(lambda x: x.split('@')[1] if isinstance(x, str) and '@' in x else '')
     else:
         st.error("'Email' column not found in the dataframe")
     return df
@@ -97,7 +91,6 @@ def split_city_state(df):
         df['State'] = df['State'].str.strip()
     return df
 
-# Helper function to combine columns
 def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original):
     if columns_to_combine:
         if retain_headings:
@@ -108,15 +101,11 @@ def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_h
         else:
             df[new_column_name] = df[columns_to_combine].astype(str).apply(
                 lambda row: delimiter.join(row.values), axis=1)
-
         if remove_original:
             df = df.drop(columns=columns_to_combine)
-
         st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
-    
     return df
 
-# Function to rename columns based on user input
 def rename_columns(df, new_names):
     if new_names:
         existing_columns = [col for col in new_names.keys() if col in df.columns]
@@ -129,7 +118,6 @@ def rename_columns(df, new_names):
         st.warning("Please provide new names for the selected columns.")
     return df
 
-# Function to capitalize the first letter of each word in the Name column
 def capitalize_names(df):
     if 'Name' in df.columns:
         df['Name'] = df['Name'].str.title()
@@ -138,7 +126,6 @@ def capitalize_names(df):
         st.error("'Name' column not found in the dataframe")
     return df
 
-# Function to separate first and last name
 def split_first_last_name(df, full_name_column):
     if full_name_column in df.columns:
         df['First Name'] = df[full_name_column].apply(lambda x: x.split()[0] if isinstance(x, str) else "")
@@ -148,7 +135,6 @@ def split_first_last_name(df, full_name_column):
         st.error(f"'{full_name_column}' not found in columns")
     return df
 
-# Function to extract and clean Python code from OpenAI's response
 def extract_python_code(response_text):
     code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
     if code_block:
@@ -168,7 +154,6 @@ def extract_python_code(response_text):
     else:
         return response_text.strip()
 
-# Function to validate and replace 'data' with 'df'
 def clean_and_validate_code(python_code):
     python_code = python_code.replace("data", "df")
     if 'df' in python_code and 'import' not in python_code:
@@ -183,7 +168,6 @@ def generate_openai_response_and_apply(prompt, df):
         The code should focus exclusively on modifying the `df` dataframe based on the following request:
         {prompt}
         """
-
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -192,14 +176,12 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
-
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
         python_code = clean_and_validate_code(python_code)
         if not python_code:
             st.error("Invalid Python code returned by OpenAI")
             return df
-
         local_env = {'df': df}
         try:
             exec(python_code, {}, local_env)
@@ -207,49 +189,15 @@ def generate_openai_response_and_apply(prompt, df):
         except SyntaxError as syntax_error:
             st.error(f"Error executing OpenAI code: {syntax_error}")
             return df
-
         return df
-
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
 
-def extract_python_code(response_text):
-    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
-    if code_block:
-        code = code_block.group(1).strip()
-        if code.startswith("python"):
-            code = code[len("python"):].strip()
-        code = re.sub(r'import.*', '', code)
-        code = re.sub(r'data\s*=.*', '', code)
-        code = re.sub(r'print\(.*\)', '', code)
-        open_braces = code.count('{')
-        close_braces = code.count('}')
-        if open_braces != close_braces:
-            code = re.sub(r'[{}]', '', code)
-        code_lines = code.split('\n')
-        code = "\n".join(line.lstrip() for line in code_lines)
-        return code
-    else:
-        return response_text.strip()
-
-# File uploader and initial DataFrame
-uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
-if uploaded_file is not None:
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    elif uploaded_file.name.endswith(('.xls', '.xlsx')):
-        df = pd.read_excel(uploaded_file)
-    else:
-        df = pd.read_csv(uploaded_file, delimiter="\t")
-
-    st.write("### Data Preview (Before Cleanup):")
-    st.dataframe(df.head())
-    
 # Sidebar options grouped logically
 st.sidebar.title("Cleanup Options")
 
-if df is not None and not df.empty:
+if uploaded_file is not None and df is not None and not df.empty:
 
     # Column Operations
     with st.sidebar.expander("Column Operations"):
@@ -296,7 +244,7 @@ if df is not None and not df.empty:
     custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
     output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
-    # Clean the data and apply transformations
+# Clean the data and apply transformations
 if st.button("Clean the data"):
     # Normalize names
     if normalize_names and 'Name' in df.columns:
