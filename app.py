@@ -121,7 +121,7 @@ def split_full_address(df):
         df = pd.concat([df, pd.DataFrame(address_components.tolist())], axis=1)
 
     # Remove the original 'Address' column
-    df.drop(columns=['Address'], inplace=True)
+        df.drop(columns=['Address'], inplace=True)
     
     return df
 
