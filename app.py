@@ -83,23 +83,28 @@ def remove_personal_emails(df, personal_domains):
 
 def split_full_address(df):
     if 'Address' in df.columns:
-        # Regular expression pattern to match the full address (street, city, state, postal code, country)
+        # Updated Regular expression pattern to match the full address more flexibly
         address_pattern = re.compile(r'''
-            (?P<Street>.*?),                # Everything before the first comma as Street
+            (?P<Street>[^\d,]+[\d\s\w]+?),   # Street address with some flexibility for numbers and street names
             \s*(?P<City>[a-zA-Z\s]+?),      # City (assuming it's followed by a comma)
             \s*(?P<State>[A-Z]{2}|[a-zA-Z\s]+),   # State (2-letter code or full name)
             \s*(?P<PostalCode>\d{5}(?:-\d{4})?|[A-Z\d\s-]+),   # US ZIP or international Postal Code
             \s*(?P<Country>[a-zA-Z\s]+)?    # Country (optional)
         ''', re.VERBOSE)
 
-        # Apply the pattern and extract components
-        df['Street'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('Street') if pd.notnull(x) and re.match(address_pattern, x) else "")
-        df['City'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('City') if pd.notnull(x) and re.match(address_pattern, x) else "")
-        df['State'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('State') if pd.notnull(x) and re.match(address_pattern, x) else "")
-        df['PostalCode'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('PostalCode') if pd.notnull(x) and re.match(address_pattern, x) else "")
-        df['Country'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('Country') if pd.notnull(x) and re.match(address_pattern, x) else "")
+        def extract_match(address):
+            if pd.notnull(address):
+                match = re.match(address_pattern, address)
+                if match:
+                    return match.groupdict()
+            return {'Street': '', 'City': '', 'State': '', 'PostalCode': '', 'Country': ''}
+
+        # Apply the pattern and extract components safely
+        address_components = df['Address'].apply(extract_match)
+        df = pd.concat([df, pd.DataFrame(address_components.tolist())], axis=1)
         
     return df
+
 
 def split_city_state(df):
     if 'City_State' in df.columns:
