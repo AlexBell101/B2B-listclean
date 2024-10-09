@@ -82,7 +82,7 @@ def remove_personal_emails(df, personal_domains):
     return df[df['Domain'].apply(lambda domain: domain not in personal_domains)]
 
 def split_full_address(df):
-   if 'Address' in df.columns:
+    if 'Address' in df.columns:
         def extract_components(address):
             # Initial empty values
             street, city, state, postal_code, country = '', '', '', '', ''
@@ -121,9 +121,10 @@ def split_full_address(df):
         df = pd.concat([df, pd.DataFrame(address_components.tolist())], axis=1)
 
     # Remove the original 'Address' column
-        df.drop(columns=['Address'], inplace=True)
+    df.drop(columns=['Address'], inplace=True)
     
     return df
+
 
 def split_city_state(df):
     if 'City_State' in df.columns:
