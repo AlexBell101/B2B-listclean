@@ -81,10 +81,24 @@ def classify_email_type(df, personal_domains):
 def remove_personal_emails(df, personal_domains):
     return df[df['Domain'].apply(lambda domain: domain not in personal_domains)]
 
-def split_address_2(df):
+def split_full_address(df):
     if 'Address' in df.columns:
-        df['Address 1'] = df['Address'].apply(lambda x: re.split(r'(?i)\b(Apt|Unit|Suite)\b', x)[0].strip())
-        df['Address 2'] = df['Address'].apply(lambda x: re.search(r'(?i)(Apt|Unit|Suite).*', x).group(0) if re.search(r'(?i)(Apt|Unit|Suite).*', x) else "")
+        # Regular expression pattern to match the full address (street, city, state, postal code, country)
+        address_pattern = re.compile(r'''
+            (?P<Street>.*?),                # Everything before the first comma as Street
+            \s*(?P<City>[a-zA-Z\s]+?),      # City (assuming it's followed by a comma)
+            \s*(?P<State>[A-Z]{2}|[a-zA-Z\s]+),   # State (2-letter code or full name)
+            \s*(?P<PostalCode>\d{5}(?:-\d{4})?|[A-Z\d\s-]+),   # US ZIP or international Postal Code
+            \s*(?P<Country>[a-zA-Z\s]+)?    # Country (optional)
+        ''', re.VERBOSE)
+
+        # Apply the pattern and extract components
+        df['Street'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('Street') if pd.notnull(x) and re.match(address_pattern, x) else "")
+        df['City'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('City') if pd.notnull(x) and re.match(address_pattern, x) else "")
+        df['State'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('State') if pd.notnull(x) and re.match(address_pattern, x) else "")
+        df['PostalCode'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('PostalCode') if pd.notnull(x) and re.match(address_pattern, x) else "")
+        df['Country'] = df['Address'].apply(lambda x: re.match(address_pattern, x).group('Country') if pd.notnull(x) and re.match(address_pattern, x) else "")
+        
     return df
 
 def split_city_state(df):
@@ -262,7 +276,7 @@ if df is not None and not df.empty:
     output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
   # Clean the data and apply transformations
-    if st.button("Clean the data"):
+    if st.button("Enlighten your data"):
         # Apply all the cleanup functions (e.g., capitalizing names, phone cleanup, etc.)
         if normalize_names and 'Name' in df.columns:
             df = capitalize_names(df)
@@ -285,10 +299,9 @@ if df is not None and not df.empty:
         if remove_personal:
             df = remove_personal_emails(df, personal_domains)
 
-        if clean_address:
-            df = split_address_2(df)
-        if split_city_state_option:
-            df = split_city_state(df)
+       if clean_address:
+            df = split_full_address(df)  # Replaces both split_address_2 and split_city_state
+
 
         if columns_to_combine:
             df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
