@@ -299,9 +299,8 @@ if df is not None and not df.empty:
         if remove_personal:
             df = remove_personal_emails(df, personal_domains)
 
-       if clean_address:
+        if clean_address:
             df = split_full_address(df)  # Replaces both split_address_2 and split_city_state
-
 
         if columns_to_combine:
             df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
