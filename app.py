@@ -83,27 +83,45 @@ def remove_personal_emails(df, personal_domains):
 
 def split_full_address(df):
     if 'Address' in df.columns:
-        # Updated Regular expression pattern to match the full address more flexibly
-        address_pattern = re.compile(r'''
-            (?P<Street>[^\d,]+[\d\s\w]+?),   # Street address with some flexibility for numbers and street names
-            \s*(?P<City>[a-zA-Z\s]+?),      # City (assuming it's followed by a comma)
-            \s*(?P<State>[A-Z]{2}|[a-zA-Z\s]+),   # State (2-letter code or full name)
-            \s*(?P<PostalCode>\d{5}(?:-\d{4})?|[A-Z\d\s-]+),   # US ZIP or international Postal Code
-            \s*(?P<Country>[a-zA-Z\s]+)?    # Country (optional)
-        ''', re.VERBOSE)
+        def extract_components(address):
+            # Initial empty values
+            street, city, state, postal_code, country = '', '', '', '', ''
 
-        def extract_match(address):
             if pd.notnull(address):
-                match = re.match(address_pattern, address)
-                if match:
-                    return match.groupdict()
-            return {'Street': '', 'City': '', 'State': '', 'PostalCode': '', 'Country': ''}
+                # Extract postal code (US ZIP format or alphanumeric for international)
+                postal_match = re.search(r'(\d{5}(?:-\d{4})?|\b[A-Z\d]{3,10}\b)', address)
+                if postal_match:
+                    postal_code = postal_match.group(0)
+                    address = address.replace(postal_code, '').strip()
 
-        # Apply the pattern and extract components safely
-        address_components = df['Address'].apply(extract_match)
+                # Extract state (2-letter code or full state name)
+                state_match = re.search(r'\b[A-Z]{2}\b', address)
+                if state_match:
+                    state = state_match.group(0)
+                    address = address.replace(state, '').strip()
+
+                # Attempt to extract country (common country names)
+                country_match = re.search(r'\b(?:United States|Canada|United Kingdom|Australia)\b', address, re.IGNORECASE)
+                if country_match:
+                    country = country_match.group(0)
+                    address = address.replace(country, '').strip()
+
+                # The remaining part can be split into city and street
+                if ',' in address:
+                    street, city = address.rsplit(',', 1)
+                    street = street.strip()
+                    city = city.strip()
+                else:
+                    street = address.strip()  # Fallback for no commas
+
+            return {'Street': street, 'City': city, 'State': state, 'PostalCode': postal_code, 'Country': country}
+
+        # Apply the component extraction function
+        address_components = df['Address'].apply(extract_components)
         df = pd.concat([df, pd.DataFrame(address_components.tolist())], axis=1)
         
     return df
+
 
 
 def split_city_state(df):
