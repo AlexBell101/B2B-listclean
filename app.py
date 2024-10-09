@@ -106,11 +106,11 @@ def split_full_address(df):
                     country = country_match.group(0)
                     address = address.replace(country, '').strip()
 
-                # The remaining part can be split into city and street
+                # The remaining part is the street and city, split at the last comma
                 if ',' in address:
-                    street, city = address.rsplit(',', 1)
-                    street = street.strip()
-                    city = city.strip()
+                    parts = address.rsplit(',', 1)
+                    street = parts[0].strip()  # Everything before the last comma is street
+                    city = parts[1].strip()    # Everything after the last comma is city
                 else:
                     street = address.strip()  # Fallback for no commas
 
