@@ -110,7 +110,7 @@ def split_full_address(df):
                 if ',' in address:
                     parts = address.rsplit(',', 1)
                     street = parts[0].strip()  # Everything before the last comma is street
-                    city = parts[1].strip()    # Everything after the last comma is city (with or without space after comma)
+                    city = parts[1].strip().rstrip(',')  # Remove trailing comma from city
                 else:
                     street = address.strip()  # Fallback for no commas
 
@@ -124,8 +124,6 @@ def split_full_address(df):
     df.drop(columns=['Address'], inplace=True)
     
     return df
-
-
 
 def split_city_state(df):
     if 'City_State' in df.columns:
