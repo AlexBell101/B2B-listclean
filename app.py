@@ -88,31 +88,54 @@ def split_full_address(df):
             street, city, state, postal_code, country = '', '', '', '', ''
 
             if pd.notnull(address):
-                # Extract postal code (US ZIP format or alphanumeric for international)
-                postal_match = re.search(r'(\d{5}(?:-\d{4})?|\b[A-Z\d]{3,10}\b)', address)
-                if postal_match:
-                    postal_code = postal_match.group(0)
-                    address = address.replace(postal_code, '').strip()
-
-                # Extract state (2-letter code or full state name)
-                state_match = re.search(r'\b[A-Z]{2}\b', address)
-                if state_match:
-                    state = state_match.group(0)
-                    address = address.replace(state, '').strip()
-
-                # Attempt to extract country (common country names)
-                country_match = re.search(r'\b(?:United States|Canada|United Kingdom|Australia)\b', address, re.IGNORECASE)
+                # Step 1: Detect and extract the country (UK or US)
+                country_match = re.search(r'\b(?:United Kingdom|UK|United States)\b', address, re.IGNORECASE)
                 if country_match:
                     country = country_match.group(0)
+                    if country.upper() == "UK":
+                        country = "United Kingdom"  # Normalize UK to United Kingdom
                     address = address.replace(country, '').strip()
-
-                # The remaining part is the street and city, split at the last comma
-                if ',' in address:
-                    parts = address.rsplit(',', 1)
-                    street = parts[0].strip()  # Everything before the last comma is street
-                    city = parts[1].strip().rstrip(',')  # Remove trailing comma from city
                 else:
-                    street = address.strip()  # Fallback for no commas
+                    # Assume United States by default if no explicit country is mentioned
+                    country = "United States"
+
+                # Step 2: Handle UK-specific parsing
+                if country == 'United Kingdom':
+                    # Extract UK postcode
+                    postal_match = re.search(r'[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}', address)
+                    if postal_match:
+                        postal_code = postal_match.group(0)
+                        address = address.replace(postal_code, '').strip()
+
+                    # Split city and county (if present)
+                    if ',' in address:
+                        parts = address.split(',')
+                        street = parts[0].strip()
+                        city = parts[1].strip() if len(parts) > 1 else ''
+                    else:
+                        street = address.strip()
+
+                # Step 3: Handle US-specific parsing
+                elif country == 'United States':
+                    # Extract ZIP code
+                    postal_match = re.search(r'\d{5}(?:-\d{4})?', address)
+                    if postal_match:
+                        postal_code = postal_match.group(0)
+                        address = address.replace(postal_code, '').strip()
+
+                    # Extract state (2-letter code)
+                    state_match = re.search(r'\b[A-Z]{2}\b', address)
+                    if state_match:
+                        state = state_match.group(0)
+                        address = address.replace(state, '').strip()
+
+                    # Split street and city
+                    if ',' in address:
+                        parts = address.split(',')
+                        street = parts[0].strip()
+                        city = parts[1].strip() if len(parts) > 1 else ''
+                    else:
+                        street = address.strip()
 
             return {'Street': street, 'City': city, 'State': state, 'PostalCode': postal_code, 'Country': country}
 
@@ -120,10 +143,11 @@ def split_full_address(df):
         address_components = df['Address'].apply(extract_components)
         df = pd.concat([df, pd.DataFrame(address_components.tolist())], axis=1)
 
-    # Remove the original 'Address' column
+    # Remove original 'Address' column
     df.drop(columns=['Address'], inplace=True)
     
     return df
+
 
 def split_city_state(df):
     if 'City_State' in df.columns:
