@@ -211,14 +211,50 @@ def clean_and_validate_code(python_code):
         return python_code
     return None
 
+def detect_relevant_column(df, prompt):
+    """
+    Automatically detect the most relevant column based on keywords in the prompt.
+    If no relevant column is found, prompt the user to specify a column.
+    """
+    prompt_keywords = {
+        'name': ['name', 'first', 'last'],
+        'phone': ['phone', 'mobile'],
+        'email': ['email', 'mail'],
+        'address': ['address', 'city', 'state', 'country'],
+        'domain': ['domain', 'website'],
+        'title': ['title', 'job', 'role', 'position']
+    }
+
+    for column in df.columns:
+        column_lower = column.lower()
+        for key, keywords in prompt_keywords.items():
+            if any(keyword in prompt.lower() for keyword in keywords):
+                if key in column_lower:
+                    return column
+    return None
+
 def generate_openai_response_and_apply(prompt, df):
+    """
+    Generate Python code using OpenAI and apply it to the dataframe (df).
+    If no column is specified, it will automatically detect the most relevant column.
+    """
     try:
+        # Detect the relevant column automatically
+        relevant_column = detect_relevant_column(df, prompt)
+
+        if not relevant_column:
+            st.error("No relevant column found in the prompt. Please specify the column explicitly.")
+            return df
+
+        # Refined prompt with the detected column
         refined_prompt = f"""
-        Please generate only the Python code that modifies the dataframe `df`.
+        Please generate only the Python code that modifies the '{relevant_column}' column of the dataframe `df`.
         Avoid including imports, data definitions, print statements, or any explanations.
         The code should focus exclusively on modifying the `df` dataframe based on the following request:
         {prompt}
         """
+
+        # Send the prompt to OpenAI
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -227,12 +263,17 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
+
+        # Extract Python code from the response
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
         python_code = clean_and_validate_code(python_code)
+
         if not python_code:
-            st.error("Invalid Python code returned by OpenAI")
+            st.error("Invalid Python code returned by OpenAI.")
             return df
+
+        # Execute the generated code
         local_env = {'df': df}
         try:
             exec(python_code, {}, local_env)
@@ -240,7 +281,9 @@ def generate_openai_response_and_apply(prompt, df):
         except SyntaxError as syntax_error:
             st.error(f"Error executing OpenAI code: {syntax_error}")
             return df
+
         return df
+
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
