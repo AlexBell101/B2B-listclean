@@ -134,6 +134,20 @@ def split_full_address(df):
 
     df.drop(columns=['Address'], inplace=True)
     return df
+    
+def detect_relevant_column(df):
+    # Define common column keywords to search for
+    column_keywords = ['title', 'job', 'position', 'role']
+
+    # Iterate over the columns and try to find a relevant one
+    for col in df.columns:
+        col_lower = col.lower()
+        if any(keyword in col_lower for keyword in column_keywords):
+            return col  # Return the first matching column name
+
+    # If no relevant column is found, return None
+    return None
+
 
 def split_city_state(df):
     if 'City_State' in df.columns:
