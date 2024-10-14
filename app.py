@@ -134,20 +134,6 @@ def split_full_address(df):
 
     df.drop(columns=['Address'], inplace=True)
     return df
-    
-def detect_relevant_column(df):
-    # Define common column keywords to search for
-    column_keywords = ['title', 'job', 'position', 'role']
-
-    # Iterate over the columns and try to find a relevant one
-    for col in df.columns:
-        col_lower = col.lower()
-        if any(keyword in col_lower for keyword in column_keywords):
-            return col  # Return the first matching column name
-
-    # If no relevant column is found, return None
-    return None
-
 
 def split_city_state(df):
     if 'City_State' in df.columns:
@@ -225,36 +211,14 @@ def clean_and_validate_code(python_code):
         return python_code
     return None
 
-import ast
-
-# New function to validate Python code syntax
-def validate_syntax(python_code):
-    try:
-        # Try to parse the code to check for syntax errors
-        ast.parse(python_code)
-        return True
-    except SyntaxError as e:
-        st.error(f"Syntax error in OpenAI-generated code: {e}")
-        return False
-
-# Updated function to generate OpenAI response and apply it to the dataframe
 def generate_openai_response_and_apply(prompt, df):
-    # Try to detect a relevant column (e.g., 'job_title' or 'Title')
-    relevant_column = detect_relevant_column(df)
-
-    # If no relevant column is detected, inform the user and exit
-    if relevant_column is None:
-        st.error("No relevant column found for the request. Please specify the column explicitly.")
-        return df
-
-    # Modify the prompt to include the detected column
-    refined_prompt = f"""
-    Please modify the '{relevant_column}' column of the dataframe by applying the following transformation:
-    {prompt}
-    """
-
-    # Continue with the OpenAI call
     try:
+        refined_prompt = f"""
+        Please generate only the Python code that modifies the dataframe `df`.
+        Avoid including imports, data definitions, print statements, or any explanations.
+        The code should focus exclusively on modifying the `df` dataframe based on the following request:
+        {prompt}
+        """
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -263,33 +227,24 @@ def generate_openai_response_and_apply(prompt, df):
             ],
             max_tokens=500
         )
-
         response_text = response.choices[0].message.content
         python_code = extract_python_code(response_text)
         python_code = clean_and_validate_code(python_code)
-
         if not python_code:
             st.error("Invalid Python code returned by OpenAI")
             return df
-
-        # Validate the syntax of the OpenAI-generated code
-        if not validate_syntax(python_code):
-            return df  # Return the original dataframe if there is a syntax error
-
         local_env = {'df': df}
         try:
-            exec(python_code, {}, local_env)  # Execute the validated code
+            exec(python_code, {}, local_env)
             df = local_env['df']
-        except Exception as e:
-            st.error(f"Error executing OpenAI code: {e}")
+        except SyntaxError as syntax_error:
+            st.error(f"Error executing OpenAI code: {syntax_error}")
             return df
-
         return df
-
     except Exception as e:
         st.error(f"OpenAI request failed: {e}")
         return df
-
+                
 # File uploader and initial DataFrame
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
 
