@@ -5,6 +5,7 @@ import phonenumbers
 from io import BytesIO
 import pycountry
 import re
+import time
 
 # Set the page config before any other Streamlit code
 st.set_page_config(page_title="List Karma", layout="centered")
@@ -84,185 +85,87 @@ def remove_personal_emails(df, personal_domains):
 def split_full_address(df):
     if 'Address' in df.columns:
         def extract_components(address):
-            # Initial empty values
             street, city, state, postal_code, country = '', '', '', '', ''
-
             if pd.notnull(address):
-                # Step 1: Detect and extract the country (UK or US)
                 country_match = re.search(r'\b(?:United Kingdom|UK|United States)\b', address, re.IGNORECASE)
                 if country_match:
                     country = country_match.group(0)
-                    if country.upper() == "UK":
-                        country = "United Kingdom"  # Normalize UK to United Kingdom
                     address = address.replace(country, '').strip()
                 else:
-                    # Assume United States by default if no explicit country is mentioned
                     country = "United States"
-
-                # Step 2: Handle UK-specific parsing
                 if country == 'United Kingdom':
-                    # Extract UK postcode
                     postal_match = re.search(r'[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}', address)
                     if postal_match:
                         postal_code = postal_match.group(0)
                         address = address.replace(postal_code, '').strip()
-
-                    # Split city and county (if present)
                     if ',' in address:
                         parts = address.split(',')
                         street = parts[0].strip()
                         city = parts[1].strip() if len(parts) > 1 else ''
                     else:
                         street = address.strip()
-
-                # Step 3: Handle US-specific parsing
                 elif country == 'United States':
-                    # Extract ZIP code
                     postal_match = re.search(r'\d{5}(?:-\d{4})?', address)
                     if postal_match:
                         postal_code = postal_match.group(0)
                         address = address.replace(postal_code, '').strip()
-
-                    # Extract state (2-letter code)
                     state_match = re.search(r'\b[A-Z]{2}\b', address)
                     if state_match:
                         state = state_match.group(0)
                         address = address.replace(state, '').strip()
-
-                    # Split street and city
                     if ',' in address:
                         parts = address.split(',')
                         street = parts[0].strip()
                         city = parts[1].strip() if len(parts) > 1 else ''
                     else:
                         street = address.strip()
-
             return {'Street': street, 'City': city, 'State': state, 'PostalCode': postal_code, 'Country': country}
-
-        # Apply the component extraction function
         address_components = df['Address'].apply(extract_components)
         df = pd.concat([df, pd.DataFrame(address_components.tolist())], axis=1)
-
-    # Remove original 'Address' column
     df.drop(columns=['Address'], inplace=True)
-    
     return df
-
-
-def split_city_state(df):
-    if 'City_State' in df.columns:
-        df[['City', 'State']] = df['City_State'].str.split(',', 1, expand=True)
-        df['City'] = df['City'].str.strip()
-        df['State'] = df['State'].str.strip()
-    return df
-
-def combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original):
-    if columns_to_combine:
-        if retain_headings:
-            df[new_column_name] = df[columns_to_combine].astype(str).apply(
-                lambda row: delimiter.join([f"{col}: {value}" for col, value in zip(columns_to_combine, row.values)]),
-                axis=1
-            )
-        else:
-            df[new_column_name] = df[columns_to_combine].astype(str).apply(
-                lambda row: delimiter.join(row.values), axis=1)
-        if remove_original:
-            df = df.drop(columns=columns_to_combine)
-        st.success(f"Columns {', '.join(columns_to_combine)} have been combined into '{new_column_name}'")
-    return df
-
-def rename_columns(df, new_names):
-    if new_names:
-        existing_columns = [col for col in new_names.keys() if col in df.columns]
-        if existing_columns:
-            df = df.rename(columns={col: new_names[col] for col in existing_columns})
-            st.success(f"Columns renamed: {new_names}")
-        else:
-            st.warning("No valid columns selected for renaming.")
-    else:
-        st.warning("Please provide new names for the selected columns.")
-    return df
-
-def capitalize_names(df):
-    if 'Name' in df.columns:
-        df['Name'] = df['Name'].str.title()
-        st.success("Capitalized the first letter of each word in the 'Name' column")
-    else:
-        st.error("'Name' column not found in the dataframe")
-    return df
-
-def split_first_last_name(df, full_name_column):
-    if full_name_column in df.columns:
-        df['First Name'] = df[full_name_column].apply(lambda x: x.split()[0] if isinstance(x, str) else "")
-        df['Last Name'] = df[full_name_column].apply(lambda x: " ".join(x.split()[1:]) if isinstance(x, str) else "")
-        st.success(f"Column '{full_name_column}' has been split into 'First Name' and 'Last Name'")
-    else:
-        st.error(f"'{full_name_column}' not found in columns")
-    return df
-
-def extract_python_code(response_text):
-    code_block = re.search(r'```(.*?)```', response_text, re.DOTALL)
-    if code_block:
-        code = code_block.group(1).strip()
-        if code.startswith("python"):
-            code = code[len("python"):].strip()
-        code = re.sub(r'import.*', '', code)
-        code = re.sub(r'data\s*=.*', '', code)
-        code = re.sub(r'print\(.*\)', '', code)
-        open_braces = code.count('{')
-        close_braces = code.count('}')
-        if open_braces != close_braces:
-            code = re.sub(r'[{}]', '', code)
-        code_lines = code.split('\n')
-        code = "\n".join(line.lstrip() for line in code_lines)
-        return code
-    else:
-        return response_text.strip()
-
-def clean_and_validate_code(python_code):
-    python_code = python_code.replace("data", "df")
-    if 'df' in python_code and 'import' not in python_code:
-        return python_code
-    return None
 
 def generate_openai_response_and_apply(prompt, df):
-    try:
-        refined_prompt = f"""
-        Please generate only the Python code that modifies the dataframe `df`.
-        Avoid including imports, data definitions, print statements, or any explanations.
-        The code should focus exclusively on modifying the `df` dataframe based on the following request:
-        {prompt}
-        """
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": refined_prompt}
-            ],
-            max_tokens=500
-        )
-        response_text = response.choices[0].message.content
-        python_code = extract_python_code(response_text)
-        python_code = clean_and_validate_code(python_code)
-        if not python_code:
-            st.error("Invalid Python code returned by OpenAI")
-            return df
-        local_env = {'df': df}
+    max_retries = 3
+    retries = 0
+    success = False
+    while retries < max_retries and not success:
         try:
+            refined_prompt = f"""
+            Please generate only the Python code that modifies the dataframe `df`.
+            Avoid including imports, data definitions, print statements, or any explanations.
+            The code should focus exclusively on modifying the `df` dataframe based on the following request:
+            {prompt}
+            """
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": refined_prompt}
+                ],
+                max_tokens=500
+            )
+            response_text = response.choices[0].message.content
+            python_code = extract_python_code(response_text)
+            python_code = clean_and_validate_code(python_code)
+            if not python_code:
+                st.error("Invalid Python code returned by OpenAI")
+                return df
+            local_env = {'df': df}
             exec(python_code, {}, local_env)
             df = local_env['df']
-        except SyntaxError as syntax_error:
-            st.error(f"Error executing OpenAI code: {syntax_error}")
-            return df
-        return df
-    except Exception as e:
-        st.error(f"OpenAI request failed: {e}")
-        return df
-                
+            success = True
+        except (SyntaxError, Exception) as e:
+            retries += 1
+            st.error(f"Attempt {retries}/{max_retries}: OpenAI request failed: {str(e)}")
+            time.sleep(2)
+    if not success:
+        st.error("Failed to apply custom request after multiple attempts.")
+    return df
+
 # File uploader and initial DataFrame
 uploaded_file = st.file_uploader("Upload your file", type=['csv', 'xls', 'xlsx', 'txt'])
 
-# Check if the file is uploaded and read it
 if uploaded_file is not None:
     if uploaded_file.name.endswith('.csv'):
         df = pd.read_csv(uploaded_file)
@@ -278,7 +181,6 @@ if uploaded_file is not None:
 if df is not None and not df.empty:
     st.sidebar.title("Cleanup Options")
 
-    # Column Operations
     with st.sidebar.expander("Column Operations"):
         columns_to_combine = st.multiselect("Select columns to combine", df.columns)
         delimiter = st.text_input("Enter a delimiter", value=", ")
@@ -289,7 +191,6 @@ if df is not None and not df.empty:
         columns_to_rename = st.multiselect("Select columns to rename", df.columns)
         new_names = {col: st.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
 
-    # Data Cleanup
     with st.sidebar.expander("Data Cleanup"):
         phone_cleanup = st.checkbox("Standardize phone numbers?")
         normalize_names = st.checkbox("Capitalize first letter of names?")
@@ -297,16 +198,9 @@ if df is not None and not df.empty:
         classify_emails = st.checkbox("Classify emails as Personal or Business?")
         remove_personal = st.checkbox("Remove rows with Personal emails?")
         clean_address = st.checkbox("Clean up and separate Address fields?")
-        split_city_state_option = st.checkbox("Split combined City and State fields?")
-        country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
-
-        # Checkbox for splitting full name and conditionally displaying the dropdown
         split_name_option = st.checkbox("Split Full Name into First and Last Name?")
-        full_name_column = None
-        if split_name_option:
-            full_name_column = st.selectbox("Select Full Name column to split", df.columns)
+        full_name_column = st.selectbox("Select Full Name column to split", df.columns) if split_name_option else None
 
-    # Custom Fields
     with st.sidebar.expander("Custom Fields"):
         add_lead_source = st.checkbox("Add 'Lead Source' field?")
         lead_source_value = st.text_input("Lead Source Value") if add_lead_source else None
@@ -323,7 +217,7 @@ if df is not None and not df.empty:
     custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
     output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
-  # Clean the data and apply transformations
+    # Clean the data and apply transformations
     if st.button("Enlighten your data"):
         # Apply all the cleanup functions (e.g., capitalizing names, phone cleanup, etc.)
         if normalize_names and 'Name' in df.columns:
@@ -363,6 +257,7 @@ if df is not None and not df.empty:
         if add_campaign:
             df['Campaign'] = campaign_value
 
+        # Apply custom AI transformation if requested
         if custom_request:
             df = generate_openai_response_and_apply(custom_request, df)
 
@@ -384,3 +279,4 @@ if df is not None and not df.empty:
             st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
 else:
     st.write("Please upload a file to proceed.")
+
