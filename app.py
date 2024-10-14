@@ -217,8 +217,9 @@ if df is not None and not df.empty:
     custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
     output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
-    # Clean the data and apply transformations
-    if st.button("Enlighten your data"):
+   # Clean the data and apply transformations
+if st.button("Enlighten your data"):
+    try:
         # Apply all the cleanup functions (e.g., capitalizing names, phone cleanup, etc.)
         if normalize_names and 'Name' in df.columns:
             df = capitalize_names(df)
@@ -244,8 +245,13 @@ if df is not None and not df.empty:
         if clean_address:
             df = split_full_address(df)  # Replaces both split_address_2 and split_city_state
 
+        # Ensure the selected columns to combine exist before trying to combine them
         if columns_to_combine:
-            df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
+            missing_columns = [col for col in columns_to_combine if col not in df.columns]
+            if missing_columns:
+                st.error(f"Cannot combine columns. The following columns are missing: {', '.join(missing_columns)}")
+            else:
+                df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
 
         if columns_to_rename:
             df = rename_columns(df, new_names)
@@ -277,6 +283,6 @@ if df is not None and not df.empty:
             st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
         elif output_format == 'TXT':
             st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
-else:
-    st.write("Please upload a file to proceed.")
 
+    except Exception as e:
+        st.error(f"An error occurred while processing the data: {str(e)}")
