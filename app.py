@@ -81,12 +81,14 @@ def classify_email_type(df, personal_domains):
 def remove_personal_emails(df, personal_domains):
     return df[df['Domain'].apply(lambda domain: domain not in personal_domains)]
 
-def split_full_address(df):
-    if 'Address' in df.columns:
+def split_full_address(df, address_column):
+    if address_column in df.columns:
         def extract_components(address):
+            # Define default empty values for each component
             street, city, state, postal_code, country = '', '', '', '', ''
 
             if pd.notnull(address):
+                # Identify and extract the country
                 country_match = re.search(r'\b(?:United Kingdom|UK|United States)\b', address, re.IGNORECASE)
                 if country_match:
                     country = country_match.group(0)
@@ -96,6 +98,7 @@ def split_full_address(df):
                 else:
                     country = "United States"
 
+                # Extract other components based on country format
                 if country == 'United Kingdom':
                     postal_match = re.search(r'[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}', address)
                     if postal_match:
@@ -129,10 +132,21 @@ def split_full_address(df):
 
             return {'Street': street, 'City': city, 'State': state, 'PostalCode': postal_code, 'Country': country}
 
-        address_components = df['Address'].apply(extract_components)
-        df = pd.concat([df, pd.DataFrame(address_components.tolist())], axis=1)
+        # Apply the extraction function to the selected address column
+        address_components = df[address_column].apply(extract_components)
+        address_df = pd.DataFrame(address_components.tolist())
 
-    df.drop(columns=['Address'], inplace=True)
+        # Ensure new columns are added even if they do not exist
+        for col in ['Street', 'City', 'State', 'PostalCode', 'Country']:
+            if col not in df.columns:
+                df[col] = address_df[col]
+            else:
+                df[col] = address_df[col]
+
+        # Drop the address column if the user wants it removed
+        if st.checkbox(f"Remove original '{address_column}' column after splitting?"):
+            df.drop(columns=[address_column], inplace=True)
+
     return df
 
 def split_city_state(df):
@@ -318,22 +332,24 @@ if df is not None and not df.empty:
         columns_to_rename = st.multiselect("Select columns to rename", df.columns)
         new_names = {col: st.text_input(f"New name for '{col}'", value=col) for col in columns_to_rename}
 
-    # Data Cleanup
     with st.sidebar.expander("Data Cleanup"):
-        phone_cleanup = st.checkbox("Standardize phone numbers?")
-        normalize_names = st.checkbox("Capitalize first letter of names?")
-        extract_domain = st.checkbox("Extract email domain?")
-        classify_emails = st.checkbox("Classify emails as Personal or Business?")
-        remove_personal = st.checkbox("Remove rows with Personal emails?")
-        clean_address = st.checkbox("Clean up and separate Address fields?")
-        split_city_state_option = st.checkbox("Split combined City and State fields?")
-        country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
+     phone_cleanup = st.checkbox("Standardize phone numbers?")
+     normalize_names = st.checkbox("Capitalize first letter of names?")
+     extract_domain = st.checkbox("Extract email domain?")
+     classify_emails = st.checkbox("Classify emails as Personal or Business?")
+     remove_personal = st.checkbox("Remove rows with Personal emails?")
+     clean_address = st.checkbox("Clean up and separate Address fields?")
+     address_column = None
+     if clean_address:
+         address_column = st.selectbox("Select Address column to clean", df.columns)
+     split_city_state_option = st.checkbox("Split combined City and State fields?")
+     country_format = st.selectbox("Country field format", ["Leave As-Is", "Long Form", "Country Code"])
 
-        # Checkbox for splitting full name and conditionally displaying the dropdown
-        split_name_option = st.checkbox("Split Full Name into First and Last Name?")
-        full_name_column = None
-        if split_name_option:
-            full_name_column = st.selectbox("Select Full Name column to split", df.columns)
+     # Checkbox for splitting full name and conditionally displaying the dropdown
+     split_name_option = st.checkbox("Split Full Name into First and Last Name?")
+     full_name_column = None
+     if split_name_option:
+         full_name_column = st.selectbox("Select Full Name column to split", df.columns)
 
     # Custom Fields
     with st.sidebar.expander("Custom Fields"):
