@@ -368,64 +368,68 @@ if df is not None and not df.empty:
     custom_file_name = st.sidebar.text_input("Custom File Name (without extension)", value="cleaned_data")
     output_format = st.sidebar.selectbox("Select output format", ['CSV', 'Excel', 'TXT'])
 
-  # Clean the data and apply transformations
-    if st.button("Enlighten your data"):
-        # Apply all the cleanup functions (e.g., capitalizing names, phone cleanup, etc.)
-        if normalize_names and 'Name' in df.columns:
-            df = capitalize_names(df)
+# Clean the data and apply transformations
+if st.button("Enlighten your data"):
+    # Apply all the cleanup functions (e.g., capitalizing names, phone cleanup, etc.)
+    if normalize_names and 'Name' in df.columns:
+        df = capitalize_names(df)
 
-        if split_name_option and full_name_column and full_name_column in df.columns:
-            df = split_first_last_name(df, full_name_column)
+    if split_name_option and full_name_column and full_name_column in df.columns:
+        df = split_first_last_name(df, full_name_column)
 
-        if 'Country' in df.columns:
-            df = convert_country(df, country_format)
+    if 'Country' in df.columns:
+        df = convert_country(df, country_format)
 
-        if phone_cleanup and 'Phone' in df.columns:
-            df['Phone'] = df['Phone'].apply(clean_phone)
+    if phone_cleanup and 'Phone' in df.columns:
+        df['Phone'] = df['Phone'].apply(clean_phone)
 
-        if extract_domain:
-            df = extract_email_domain(df)
+    if extract_domain:
+        df = extract_email_domain(df)
 
-        if classify_emails:
-            df = classify_email_type(df, personal_domains)
+    if classify_emails:
+        df = classify_email_type(df, personal_domains)
 
-        if remove_personal:
-            df = remove_personal_emails(df, personal_domains)
+    if remove_personal:
+        df = remove_personal_emails(df, personal_domains)
 
-        if clean_address:
-            df = split_full_address(df)  # Replaces both split_address_2 and split_city_state
+    # UPDATED SECTION - Use address_column parameter here
+    if clean_address and address_column:
+        df = split_full_address(df, address_column)
 
-        if columns_to_combine:
-            df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
+    if split_city_state_option:
+        df = split_city_state(df)
 
-        if columns_to_rename:
-            df = rename_columns(df, new_names)
+    if columns_to_combine:
+        df = combine_columns(df, columns_to_combine, delimiter, new_column_name, retain_headings, remove_original)
 
-        if add_lead_source:
-            df['Lead Source'] = lead_source_value
-        if add_lead_source_detail:
-            df['Lead Source Detail'] = lead_source_detail_value
-        if add_campaign:
-            df['Campaign'] = campaign_value
+    if columns_to_rename:
+        df = rename_columns(df, new_names)
 
-        if custom_request:
-            df = generate_openai_response_and_apply(custom_request, df)
+    if add_lead_source:
+        df['Lead Source'] = lead_source_value
+    if add_lead_source_detail:
+        df['Lead Source Detail'] = lead_source_detail_value
+    if add_campaign:
+        df['Campaign'] = campaign_value
 
-        # Show the cleaned data preview
-        st.write("### Data Preview (After Cleanup):")
-        st.dataframe(df.head())
+    if custom_request:
+        df = generate_openai_response_and_apply(custom_request, df)
 
-        # Output format handling
-        if output_format == 'CSV':
-            file_name = f"{custom_file_name}.csv"
-            st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
-        elif output_format == 'Excel':
-            output = BytesIO()
-            writer = pd.ExcelWriter(output, engine='xlsxwriter')
-            df.to_excel(writer, index=False)
-            writer.save()
-            st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
-        elif output_format == 'TXT':
-            st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
+    # Show the cleaned data preview
+    st.write("### Data Preview (After Cleanup):")
+    st.dataframe(df.head())
+
+    # Output format handling
+    if output_format == 'CSV':
+        file_name = f"{custom_file_name}.csv"
+        st.download_button(label="Download CSV", data=df.to_csv(index=False), file_name=file_name, mime="text/csv")
+    elif output_format == 'Excel':
+        output = BytesIO()
+        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        df.to_excel(writer, index=False)
+        writer.save()
+        st.download_button(label="Download Excel", data=output.getvalue(), file_name=f"{custom_file_name}.xlsx", mime="application/vnd.ms-excel")
+    elif output_format == 'TXT':
+        st.download_button(label="Download TXT", data=df.to_csv(index=False, sep="\t"), file_name=f"{custom_file_name}.txt", mime="text/plain")
 else:
     st.write("Please upload a file to proceed.")
